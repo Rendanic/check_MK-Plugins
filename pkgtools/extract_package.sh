@@ -42,7 +42,7 @@ extract_data() {
 	cd $pwd
 	test -d $packagename || mkdir $packagename
 	cd $packagename
-	for archiv in $(cd /tmp/mk_oracle/ ; ls *tar | cut -d"." -f1)
+	for archiv in $(cd /tmp/${packagename}/ ; ls *tar | cut -d"." -f1)
 	do
 		extract_subarchiv ${archiv}
 	done
