@@ -120,7 +120,7 @@ then
 	fi
 else
 	# EZCONNECT
-	DBCONNECT="localhost/"${ORACLE_SID}
+	DBCONNECT=/@"localhost/"${ORACLE_SID}
 fi
 
 SQLPLUS=${ORACLE_HOME}/bin/sqlplus
