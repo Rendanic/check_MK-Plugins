@@ -9,6 +9,8 @@
 # | Copyright Mathias Kettner 2010             mk@mathias-kettner.de |
 # +------------------------------------------------------------------+
 #
+# mk_oracle Version 0.7.3
+#
 # This file is part of Check_MK.
 # The official homepage is at http://mathias-kettner.de/check_mk.
 #
@@ -22,7 +24,7 @@
 # License along with GNU Make; see the file  COPYING.  If  not,  write
 # to the Free Software Foundation, Inc., 51 Franklin St,  Fifth Floor,
 # Boston, MA 02110-1301 USA.
-
+#
 # Check_MK agent plugin for monitoring ORACLE databases
 
 MK_SQLTMPDIR="/tmp"
@@ -381,7 +383,7 @@ do_version_checks()
                   || ' ' || DATABASE_ROLE
                   || ' ' || FORCE_LOGGING
                   || ' ' || case when ((sysdate-startup_time)<0) then 0 
-                                 else (sysdate-startup_time)*24*60*60 end
+                                 else (round(sysdate-startup_time)*24*60*60) end
 	          || ' ' || d.name
            from v\$instance i, v\$database d;
 
@@ -486,7 +488,7 @@ for SID in $SIDS; do
     fi
 
     ###########################################################
-    #      foreground Checks
+    #      synchron Checks
     ###########################################################
     # no caching on recovery area
     # => this v$-view has a low performance impact on the database
@@ -542,7 +544,7 @@ _EOF_
         echo '<<<oracle_rman_backups>>>'
     else
         ###########################################################
-        #      background Checks
+        #      asynchron Checks
         ###########################################################
         create_result_for_check tablespaces $CACHE_MAXAGE_TABLESPACE $MK_SQLRESULT_TABLESPACE $MK_SQLTMPFILE do_spool_tablespace
         create_result_for_check ts_quotas $CACHE_MAXAGE_TABLESPACE $MK_SQLRESULT_TS_QUOTA $MK_SQLTMPFILE do_spool_ts_quotas
