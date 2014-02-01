@@ -34,6 +34,8 @@ if [ -z "$SIDS" ] ; then
         echo '<<<oracle_sessions>>>'
         echo '<<<oracle_logswitches>>>'
         echo '<<<oracle_tablespaces>>>'
+        echo '<<<oracle_ts_quotas>>>'
+        echo '<<<oracle_recovery_area>>>'
     fi
     exit 0
 fi
@@ -45,6 +47,7 @@ touch $MK_CONFDIR/mk_oracle.found
 # as often as possible. If the database queries last longer
 # then your check interval, caching will be active nevertheless.
 CACHE_MAXAGE=120
+CACHE_MAXAGE_TABLESPACE=600
 
 # Source the optional configuration file for this agent plugin
 if [ -e "$MK_CONFDIR/mk_oracle.cfg" ]
@@ -81,16 +84,131 @@ fi
 # The cache is used for $CACHE_MAXAGE seconds. The CACHE_MAXAGE
 # option is pre-set to 120 seconds but can be changed in mk_oracle.cfg.
 
+# complete rework of the plugin done by Thorsten Bruhns (thorsten.bruhns@opitz-consulting.com)
+# There is a new strategy in this plugin. We loop over all SIDs with EXLUDE an INCLUDEs like before.
+# We don't do a login for each check anymore. The needed checks are written to a sql-file and executed together in 1 Session. This reduces the amount of logins to the database and increases the speed of the plugin.
+#
+# There is an ability to configre a cache time for each type of check.
+# Tablespace-Checks every 10 minutes due to high load on databases with a lot of tablespaces!
+# Sessions are checked at 2 minutes interval
+#
+#
+# Remove old cache files at the start of the plugin. No old garbage from non existing databases anymore.
+# Create a temporary sql file in /tmp for each execute of the plugin. This file includes only the needed checks dependent from the age of the cache files. This gives us the ability to use different ages for the type of checks.
+#
+# - clear cache
+#   remove old cache files from database who are not running anymore
+#
+
+#
 function sqlplus ()
 {
-    if OUTPUT=$({ echo 'set pages 0' ; echo 'whenever sqlerror exit 1'; echo 'set lines 8000' ; echo 'set feedback off'; cat ; } | $MK_CONFDIR/sqlplus.sh $1)
+    if OUTPUT=$({ echo 'set pages 0 trimspool on' ; echo 'whenever sqlerror exit 1'; echo 'set lines 8000' ; echo 'set feedback off'; cat ; } | $MK_CONFDIR/sqlplus.sh $1)
     then
-        echo "${OUTPUT}" | sed -e 's/[[:space:]]\+/ /g' -e '/^[[:space:]]*$/d' -e "s/^/$1 /"
+        # add ORACLE_SID at start of each line. Don't do that for line with '<<<text>>>'
+        echo "${OUTPUT}" | sed -e 's/[[:space:]]\+/ /g' -e '/^[[:space:]]*$/d' -e "/^<<<.*>>>$/! s/^/$1 /"
     else
         echo "${OUTPUT}" | sed "s/^/$1 FAILURE /"
     fi
 }
 
+clear_cache ()
+{
+    # remove old cache-files
+    # cached files are removed after 120 minutes
+    CLEAN_CACHE_MAXAGE=7200
+    if [ -d $MK_CONFDIR ]
+    then
+        NOW=$(date +%s)
+        for CACHE_FILE in $(find $MK_CONFDIR -name "oracle_*.cache")
+        do
+            MTIME=$(stat -c %Y $CACHE_FILE)
+            if [ $(($NOW - $MTIME)) -ge $CLEAN_CACHE_MAXAGE ]
+            then
+                rm -f $CACHE_FILE
+            fi
+        done
+    fi
+    # remove old temporary data from tmp
+    # we need to spool to /tmp from sqlplus and move the result to MK_CONFDIR
+    for CACHE_FILE in $(find $TMP_CACHEDIR -name ".check_mk_oracle_*.cache")
+    do
+        MTIME=$(stat -c %Y $CACHE_FILE)
+        if [ $(($NOW - $MTIME)) -ge $CLEAN_CACHE_MAXAGE ]
+        then
+            rm -f $CACHE_FILE
+        fi
+    done
+}
+
+do_spool_tablespace()
+{
+    # convert READ ONLY to READONLY for later splitting of results in cmk.
+    filename=${1}
+    resultfile=$2
+    echo "spool "$resultfile >> $filename
+    echo 'PROMPT <<<oracle_tablespaces>>>' >> $filename
+    echo "select file_name ||' '|| tablespace_name ||' '|| fstatus ||' '|| AUTOEXTENSIBLE
+              ||' '|| blocks ||' '|| maxblocks ||' '|| USER_BLOCKS ||' '|| INCREMENT_BY 
+              ||' '|| ONLINE_STATUS ||' '|| BLOCK_SIZE 
+              ||' '|| decode(tstatus,'READ ONLY', 'READONLY', tstatus) || ' ' || free_blocks 
+              ||' '|| contents
+       from (
+                select f.file_name, f.tablespace_name, f.status fstatus, f.AUTOEXTENSIBLE,
+                f.blocks, f.maxblocks, f.USER_BLOCKS, f.INCREMENT_BY,
+                f.ONLINE_STATUS, t.BLOCK_SIZE, t.status tstatus, nvl(sum(fs.blocks),0) free_blocks, t.contents
+                from dba_data_files f, dba_tablespaces t, dba_free_space fs
+                where f.tablespace_name = t.tablespace_name
+                and f.file_id = fs.file_id(+)
+                group by f.file_name, f.tablespace_name, f.status, f.autoextensible,
+                f.blocks, f.maxblocks, f.user_blocks, f.increment_by, f.online_status,
+                t.block_size, t.status, t.contents
+                UNION
+                select f.file_name, f.tablespace_name, f.status, f.AUTOEXTENSIBLE,
+                f.blocks, f.maxblocks, f.USER_BLOCKS, f.INCREMENT_BY, 'TEMP',
+                t.BLOCK_SIZE, t.status, sum(sh.blocks_free) free_blocks, 'TEMPORARY'
+                from v\$thread th, dba_temp_files f, dba_tablespaces t, v\$temp_space_header sh
+                WHERE f.tablespace_name = t.tablespace_name and f.file_id = sh.file_id
+                GROUP BY th.instance, f.file_name, f.tablespace_name, f.status,
+                f.autoextensible, f.blocks, f.maxblocks, f.user_blocks, f.increment_by,
+                'TEMP', t.block_size, t.status);
+" >> $filename
+}
+
+do_spool_recovery_area()
+{
+    filename=${1}
+    echo 'PROMPT <<<oracle_recovery_area>>>' >> $filename
+    echo "select round((SPACE_USED-SPACE_RECLAIMABLE)/SPACE_LIMIT*100)
+                 ||' '|| round(SPACE_LIMIT/1024/1024)
+                 ||' '|| round(SPACE_USED/1024/1024)
+                 ||' '|| round(SPACE_RECLAIMABLE/1024/1024)
+          from V\$RECOVERY_FILE_DEST;
+         " >> $filename
+}
+
+do_spool_ts_quotas()
+{
+    filename=${1}
+    resultfile=$2
+    echo "spool "$resultfile >> $filename
+    echo 'PROMPT <<<oracle_ts_quotas>>>' >> $filename
+    echo "select USERNAME 
+                 ||' '|| TABLESPACE_NAME
+                 ||' '|| round(bytes/max_bytes*100)
+                 ||' '|| BYTES/1024/1024
+                 ||' '|| MAX_BYTES/1024/1024
+          from dba_ts_quotas 
+          where max_bytes  > 0
+          order by 1;
+         " >> $filename
+}
+
+print_cached_data()
+{
+    cat $2 | sed -e "/^<<<.*>>>$/! s/^/$1 /"
+}
+clear_cache
 
 for SID in $SIDS; do
     # Check if SID is listed in ONLY_SIDS if this is used
@@ -98,11 +216,11 @@ for SID in $SIDS; do
         SKIP=yes
         for S in $ONLY_SIDS ; do
 	    if  [ "$S" = "$SID" ] ; then
-	        SKIP=
-		break
+                SKIP=
+                break
             fi 
         done
-	if [ "$SKIP" ] ; then continue ; fi
+        if [ "$SKIP" ] ; then continue ; fi
     fi
         
     EXCLUDE=EXCLUDE_$SID
@@ -112,112 +230,146 @@ for SID in $SIDS; do
         continue
     fi
 
+    MK_SQLTMPDIR="/tmp"
+
+    # MK_SQLTMPFILE is execute in sqlplus.sh at the end of the loop
+    # we need an unique identifier for the sql-file
+    MK_SQLTMPFILE=$MK_SQLTMPDIR"/.mk_oracle_oracle_"$SID"_"$(date +%s)".sql"
+    MK_SQLTMPFILENOW=$MK_SQLTMPDIR"/.mk_oracle_oracle_"$SID"_now_"$(date +%s)".sql"
+
+    # store the result of sqlplus.sh for each check in 1 file
+    # we won't execute every check while running the agent
+    # => we add the chached data for each check to complet the result of the agent
+    MK_SQLRESULT_TABLESPACE=$MK_SQLTMPDIR"/.mk_oracle_"$SID"_tablespace.data"
+
+    MK_SQLRESULT_TS_QUOTA=$MK_SQLTMPDIR"/.mk_oracle_"$SID"_ts_quota.data"
+
+echo $EXCLUDE_$SID
     # Do Version-Check (use as a general login check) without caching
+    # get some interesting data from database and instance
+    # these sqls are realy fast. No need to cache these results!
     if [ "$EXCLUDE" = "${EXCLUDE/version/}" ]; then
-        echo '<<<oracle_version>>>'
-        echo "select banner from v\$version where banner like 'Oracle%';" | sqlplus "$SID"
+        sqlplus $SID <<_EOF_
+           PROMPT <<<oracle_version>>>
+           select banner from v\$version where banner like 'Oracle%';
+
+           prompt <<<oracle_database>>>
+           select DBID
+                  || ' ' || NAME
+                  || ' ' || LOG_MODE
+                  || ' ' || DATABASE_ROLE
+                  || ' ' || FORCE_LOGGING
+           from v\$database;
+
+           prompt <<<oracle_instance>>>
+           select VERSION
+	          || ' ' || STATUS
+	          || ' ' || LOGINS
+                  || ' ' || to_char(startup_time,'dd.mm.yyyy hh24:mi:ss') 
+           from v\$instance;
+
+           prompt <<<oracle_sessions>>>
+           select count(*) from v\$session;
+           prompt <<<oracle_processes>>>
+           select round(a.cnt/b.maxcnt*100)
+                  , a.cnt 
+                  , maxcnt
+           from (select count(*) cnt 
+                 from v\$process
+                ) a
+               ,(select value maxcnt 
+                 from v\$parameter 
+                 where name='processes'
+                ) b
+           ;
+
+           prompt <<<oracle_logswitches>>>
+           select count(1) 
+           from v\$loghist 
+           where first_time > sysdate - 1/24;
+
+_EOF_
     fi
 
-    CACHE_FILE=$MK_CONFDIR/oracle_$SID.cache
-
-    # Check if file exists and recent enough
-    CACHE_FILE_UPTODATE=
-    if [ -s $CACHE_FILE ]; then
-        NOW=$(date +%s)
-        MTIME=$(stat -c %Y $CACHE_FILE)
-        if [ $(($NOW - $MTIME)) -le $CACHE_MAXAGE ]; then
-            CACHE_FILE_UPTODATE=1
+    # current date in unixtime for later usage
+    NOW=$(date +%s)
+    if [ ! '$EXCLUDE' = '${EXCLUDE/tablespaces/}' ]; then
+        # do we have a cached file?
+        if [ -f $MK_SQLRESULT_TABLESPACE ]; then
+            # Is the cached file outdated?
+            MTIME=$(stat -c %Y $MK_SQLRESULT_TABLESPACE)
+            if [ $(($NOW - $MTIME)) -gt $CACHE_MAXAGE_TABLESPACE ]; then
+                # remove old file!
+                rm -f $MK_SQLRESULT_TABLESPACE
+                # create sql for tablespace monitoring
+                do_spool_tablespace $MK_SQLTMPFILE $MK_SQLRESULT_TABLESPACE
+            else
+                # print cached data
+                print_cached_data $SID $MK_SQLRESULT_TABLESPACE
+            fi
+        else
+            # create sql for tablespace monitoring
+            do_spool_tablespace $MK_SQLTMPFILE $MK_SQLRESULT_TABLESPACE
         fi
     fi
 
-    # If the cache file exists, output it, regardless of its age. If it's outdated
-    # then it will be recreated *asynchronously*. It's new contents will not 
-    # be available here anyway.
-    if [ -s "$CACHE_FILE" ] ; then cat "$CACHE_FILE" ; fi
+    if [ ! '$EXCLUDE' = '${EXCLUDE/recovery_area/}' ]; then
+        # no caching on recovery area
+        # => this v$-view has a low performance impact on the database
+        do_spool_recovery_area $MK_SQLTMPFILENOW
+    fi
 
-    # When the cache file is not valid, we recreated it, but only if there is not    
-    # yet a background process from a previous check still doing this! We see this
-    # because of the existance of the .new file
-    # When the cache is old and there is no *new file present, then start a query
-    # to update the information for this instance.
-    if [ -z "$CACHE_FILE_UPTODATE" -a ! -e "$CACHE_FILE.new" ]
+    if [ ! '$EXCLUDE' = '${EXCLUDE/ts_quotas/}' ]; then
+        # do we have a cached file?
+        # Tablespace-Quotas and Tablespace use the same cache age
+        if [ -f $MK_SQLRESULT_TS_QUOTA ]; then
+            # Is the cached file outdated?
+            MTIME=$(stat -c %Y $MK_SQLRESULT_TS_QUOTA)
+            if [ $(($NOW - $MTIME)) -gt $CACHE_MAXAGE_TABLESPACE ]; then
+                # remove old file!
+                rm -f $MK_SQLRESULT_TS_QUOTA
+                # create sql for user quotas
+                do_spool_ts_quotas $MK_SQLTMPFILE $MK_SQLRESULT_TS_QUOTA
+            else
+                # print cached data
+                print_cached_data $SID $MK_SQLRESULT_TS_QUOTA
+            fi
+        else
+            # create sql for user quotas
+            do_spool_ts_quotas $MK_SQLTMPFILE $MK_SQLRESULT_TS_QUOTA
+        fi
+    fi
+
+
+    # only try to execute sqlplus when data must be read from database
+    # this is the synchronous call!
+    if [ -f $MK_SQLTMPFILENOW ]
+    then
+        sqlplus $SID <<_EOF_
+@$MK_SQLTMPFILENOW
+_EOF_
+    fi
+
+    # only try to execute sqlplus when data must be read from database
+    # this is the asynchronous call!
+    if [ -f $MK_SQLTMPFILE ]
     then
         setsid bash -c "
             set -o noclobber
             function sqlplus ()
             {
-                if OUTPUT=\$({ echo 'set pages 0' ; echo 'whenever sqlerror exit 1'; echo 'set lines 8000' ; echo 'set feedback off'; cat ; } | $MK_CONFDIR/sqlplus.sh \$1)
-		then
-                    echo \"\${OUTPUT}\" | sed -e 's/[[:space:]]\+/ /g' -e '/^[[:space:]]*$/d' -e \"s/^/\$1 /\"
-		else
-		    echo \"\${OUTPUT}\" | sed \"s/^/\$1 FAILURE /\"
+                if OUTPUT=\$({ echo 'set pages 0 trimspool on' ; echo 'whenever OSERROR  EXIT ROLLBACK' ; echo 'whenever sqlerror exit 1'; echo 'set lines 8000' ; echo 'set feedback off'; cat ; } | $MK_CONFDIR/sqlplus.sh \$1)
+               then
+                   echo \"\${OUTPUT}\" | sed -e 's/[[:space:]]\+/ /g' -e '/^[[:space:]]*$/d' -e \"/^<<<.*>>>\$/! s/^/\$1 /\"
+               else
+                   echo \"\${OUTPUT}\" | sed \"s/^/\$1 FAILURE /\"
                 fi
             }
-
-            {
-            # Only execute checks when not filtered
-            if [ '$EXCLUDE' = '${EXCLUDE/sessions/}' ]; then
-                echo '<<<oracle_sessions>>>'
-                echo \"select count(1) from v\\\$session where status = 'ACTIVE';\" | sqlplus \"$SID\"
-            fi
-
-            if [ '$EXCLUDE' = '${EXCLUDE/logswitches/}' ]; then
-                echo '<<<oracle_logswitches>>>'
-                echo \"select count(1) from v\\\$loghist where first_time > sysdate - 1/24;\" | sqlplus \"$SID\"
-            fi
-
-            if [ '$EXCLUDE' = '${EXCLUDE/jobs/}' ]; then
-                echo '<<<oracle_jobs>>>'
-                sqlplus "$SID" <<EOF
-                SELECT j.OWNER, j.JOB_NAME, j.STATE,
-                (TRUNC(sysdate) + j.LAST_RUN_DURATION - TRUNC(sysdate)) * 86400 AS LAST_RUN_DURATION,
-                j.RUN_COUNT, j.ENABLED, NVL(j.NEXT_RUN_DATE, to_date('1970-01-01', 'YYYY-mm-dd')),
-                NVL(j.SCHEDULE_NAME, '-'), d.STATUS
-                FROM dba_scheduler_jobs j, dba_scheduler_job_run_details d
-                WHERE d.owner=j.OWNER AND d.JOB_NAME=j.JOB_NAME
-                    AND d.LOG_ID=(SELECT max(LOG_ID) FROM dba_scheduler_job_run_details dd
-                                  WHERE dd.owner=j.OWNER and dd.JOB_NAME=j.JOB_NAME);
-EOF
-            fi
-
-            if [ '$EXCLUDE' = '${EXCLUDE/rman_backups/}' ]; then
-                echo '<<<oracle_rman_backups>>>'
-                sqlplus "$SID" <<EOF
-                SELECT b.COMMAND_ID, a.STATUS,
-                to_char(a.START_TIME, 'YYYY-mm-dd_HH24:MI:SS') AS START_TIME,
-                to_char(a.END_TIME, 'YYYY-mm-dd_HH24:MI:SS') AS END_TIME, b.INPUT_TYPE
-                FROM SYS.V_\\\$RMAN_BACKUP_JOB_DETAILS a,
-                (SELECT input_type, max(command_id) as command_id
-                 FROM SYS.V_\\\$RMAN_BACKUP_JOB_DETAILS WHERE STATUS<>'RUNNING' GROUP BY input_type) b
-                WHERE a.COMMAND_ID = b.COMMAND_ID;
-EOF
-            fi
-
-            if [ '$EXCLUDE' = '${EXCLUDE/tablespaces/}' ]; then
-                echo '<<<oracle_tablespaces>>>'
-                sqlplus "$SID" <<EOF | sed 's/READ ONLY/READONLY/g'
-                select f.file_name, f.tablespace_name, f.status, f.AUTOEXTENSIBLE,
-                f.blocks, f.maxblocks, f.USER_BLOCKS, f.INCREMENT_BY,
-                f.ONLINE_STATUS, t.BLOCK_SIZE, t.status, decode(sum(fs.blocks), NULL, 0,
-                sum(fs.blocks)) free_blocks
-                from dba_data_files f, dba_tablespaces t, dba_free_space fs
-                where f.tablespace_name = t.tablespace_name
-                and f.file_id = fs.file_id(+)
-                group by f.file_name, f.tablespace_name, f.status, f.autoextensible,
-                f.blocks, f.maxblocks, f.user_blocks, f.increment_by, f.online_status,
-                t.block_size, t.status
-                UNION
-                select f.file_name, f.tablespace_name, f.status, f.AUTOEXTENSIBLE,
-                f.blocks, f.maxblocks, f.USER_BLOCKS, f.INCREMENT_BY, 'TEMP',
-                t.BLOCK_SIZE, t.status, sum(sh.blocks_free) free_blocks
-                from v\\\$thread th, dba_temp_files f, dba_tablespaces t, v\\\$temp_space_header sh
-                WHERE f.tablespace_name = t.tablespace_name and f.file_id = sh.file_id
-                GROUP BY th.instance, f.file_name, f.tablespace_name, f.status,
-                f.autoextensible, f.blocks, f.maxblocks, f.user_blocks, f.increment_by,
-                'TEMP', t.block_size, t.status;
-EOF
-            fi 
-            } > $CACHE_FILE.new && mv $CACHE_FILE.new $CACHE_FILE || rm -f $CACHE_FILE*
+        sqlplus "$SID" <<_EOF_
+@$MK_SQLTMPFILE
+_EOF_
         "
     fi
+
+    rm -f $MK_SQLTMPFILE $MK_SQLTMPFILENOW
 done
