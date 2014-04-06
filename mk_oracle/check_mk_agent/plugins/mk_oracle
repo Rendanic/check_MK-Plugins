@@ -25,9 +25,12 @@
 
 # Check_MK agent plugin for monitoring ORACLE databases
 
+# last change 06.04.2014
+
 MK_SQLTMPDIR="/tmp"
 # Get list of all running databases
-SIDS=$(UNIX95=true ps ax -o args | sed -n '/^\(ora\|xe\)_pmon_\([^ ]*\)/s//\2/p')
+# Do not work on ASM in this plugin. => Ignore a running ASM-Instance!
+SIDS=$(UNIX95=true ps ax -o args | grep -v " ora_pmon_+ASM" | sed -n '/^\(ora\|xe\)_pmon_\([^ ]*\)/s//\2/p')
 if [ -z "$SIDS" ] ; then 
     # If on this system we've already found a database
     if [ -e "$MK_CONFDIR/mk_oracle.found" ] ; then
@@ -37,7 +40,12 @@ if [ -z "$SIDS" ] ; then
         echo '<<<oracle_tablespaces>>>'
         echo '<<<oracle_ts_quotas>>>'
         echo '<<<oracle_resumable>>>'
+        echo '<<<oracle_instance>>>'
+        echo '<<<oracle_undostat>>>'
         echo '<<<oracle_recovery_area>>>'
+        echo '<<<oracle_processes>>>'
+        echo '<<<oracle_jobs>>>'
+        echo '<<<oracle_perfdata>>>'
     fi
     exit 0
 fi
@@ -88,29 +96,40 @@ fi
 
 # complete rework of the plugin done by Thorsten Bruhns (thorsten.bruhns@opitz-consulting.com)
 # There is a new strategy in this plugin. We loop over all SIDs with EXLUDE an INCLUDEs like before.
-# We don't do a login for each check anymore. The needed checks are written to a sql-file and executed together in 1 Session. This reduces the amount of logins to the database and increases the speed of the plugin.
+# We don't do a login for each check anymore. The needed checks are written 
+# to a sql-file and executed together in 1 Session. This reduces the number
+# of logins to the database and increases the speed of the plugin.
 #
 # There is an ability to configre a cache time for each type of check.
 # Tablespace-Checks every 10 minutes due to high load on databases with a lot of tablespaces!
 # Sessions are checked at 2 minutes interval
 #
 #
-# Remove old cache files at the start of the plugin. No old garbage from non existing databases anymore.
-# Create a temporary sql file in /tmp for each execute of the plugin. This file includes only the needed checks dependent from the age of the cache files. This gives us the ability to use different ages for the type of checks.
+# Remove old cache files at the start of the plugin. No old garbage from non existing 
+# databases anymore.
+# Create a temporary sql file in /tmp for each execute of the plugin. This file includes 
+# only the needed checks dependent from the age of the cache files. This gives us the ability 
+# to use different ages for the type of checks.
 #
+# Local functions
 # - clear cache
 #   remove old cache files from database who are not running anymore
+# - sqlplus
+#   start SQLPlus
 #
 
 #
 function sqlplus ()
 {
-    if OUTPUT=$({ echo 'set pages 0 trimspool on ' ; echo 'whenever sqlerror exit 1'; echo 'set lines 8000' ; echo 'set feedback off'; cat ; } | $MK_CONFDIR/sqlplus.sh $1)
+    if OUTPUT=$({ echo 'set pages 0 trimspool on feedback off lines 8000' ; echo 'whenever sqlerror exit 1'; cat ; } | $MK_CONFDIR/sqlplus.sh $1)
     then
         # add ORACLE_SID at start of each line. Don't do that for line with '<<<text>>>'
-        echo "${OUTPUT}" 
+        export OUTPUT
+        return 0
     else
-        echo "${OUTPUT}" | sed "s/^/$1 FAILURE /"
+        OUTPUT=${OUTPUT} | sed "s/^/$1 FAILURE /"
+        export OUTPUT
+        return 1
     fi
 }
 
@@ -196,6 +215,48 @@ do_spool_rman_backup()
          " >> $filename
 }
 
+do_spool_perfdata()
+{
+    filename=${1}
+    echo 'PROMPT <<<oracle_perfdata>>>' >> $filename
+    echo "with metrics as
+          (
+           SELECT a.begin_time
+                 ,a.metric_id
+                 ,decode(a.metric_id, 2123, 'dbtime_cs'
+                                    , 2107, 'dbwait_pct'
+                                    , 2108, 'dbcpu_pct'
+                        ) metricname
+                 , value
+           FROM V\$SYSMETRIC_HISTORY a
+           join V\$METRICNAME b
+             on a.metric_id = b.metric_id
+            and a.group_id = b.group_id
+          WHERE a.metric_id in (2107,2108,2123)
+            and a.group_id = 2
+          )
+          select instance_name
+                 ||' '|| metricname
+                 ||' '|| val1
+                 ||' '|| val5
+                 ||' '|| val15
+          from (
+          select vi.instance_name
+                ,dbt1.metricname
+                ,round(avg(dbt1.value),0)  val1
+                ,round(avg(dbt5.value),0)  val5
+                ,round(avg(dbt15.value),0) val15
+          from metrics dbt1, metrics dbt5, metrics dbt15, v\$instance vi
+          where dbt1.metric_id   = dbt5.metric_id
+            and dbt15.metric_id  = dbt5.metric_id
+            and dbt1.begin_time  > sysdate - 2*(1/24/60)
+            and dbt5.begin_time  > sysdate - 5*(1/24/60)
+            and dbt15.begin_time > sysdate - 15*(1/24/60)
+          group by vi.instance_name, dbt1.metricname
+               );" >> $filename
+
+}
+
 do_spool_recovery_area()
 {
     filename=${1}
@@ -224,6 +285,7 @@ do_spool_undostat()
                               from v\$undostat order by end_time desc
                              )
                         where rownum = 1
+                        and TUNED_UNDORETENTION > 0
               );
          " >> $filename
 }
@@ -237,9 +299,9 @@ do_spool_resumable()
                  ||' '|| a.SESSION_ID
                  ||' '|| a.status
                  ||' '|| a.TIMEOUT
-                 ||' '|| round((sysdate-to_date(a.SUSPEND_TIME,'mm/dd/yy hh:mi:ss'))*24*60*60)
+                 ||' '|| round((sysdate-to_date(a.SUSPEND_TIME,'mm/dd/yy hh24:mi:ss'))*24*60*60)
                  ||' '|| a.ERROR_NUMBER
-                 ||' '|| to_char(to_date(a.SUSPEND_TIME, 'mm/dd/yy hh:mi:ss'),'mm/dd/yy_hh:mi:ss')
+                 ||' '|| to_char(to_date(a.SUSPEND_TIME, 'mm/dd/yy hh24:mi:ss'),'mm/dd/yy_hh24:mi:ss')
                  ||' '|| a.RESUME_TIME
                  ||' '|| a.ERROR_MSG
           from dba_resumable a, v\$instance i, dba_users u
@@ -326,6 +388,9 @@ create_result_for_check()
 
 do_version_checks()
 {
+        # oracle_instance: uptime is 0 when sysdate > startup_time in instance
+        #                  this is required when time is changed on the host
+        # sqlplus returns OUTPUT with the result of the check!
         sqlplus $SID <<_EOF_
            PROMPT <<<oracle_version>>>
            select i.INSTANCE_NAME
@@ -344,9 +409,10 @@ do_version_checks()
                   || ' ' || LOG_MODE
                   || ' ' || DATABASE_ROLE
                   || ' ' || FORCE_LOGGING
-                  || ' ' || ndp.VALUE
-           from v\$instance i, v\$database d, nls_database_parameters ndp
-           where ndp.PARAMETER='NLS_CHARACTERSET';
+                  || ' ' || case when ((sysdate-startup_time)<0) then 0 
+                                 else (sysdate-startup_time)*24*60*60 end
+	          || ' ' || d.name
+           from v\$instance i, v\$database d;
 
            prompt <<<oracle_sessions>>>
            select i.instance_name
@@ -370,6 +436,23 @@ do_version_checks()
                  where first_time > sysdate - 1/24
                 );
 _EOF_
+if [ ${?} -ne 0 ]
+then
+    # We need to print the sections when sqlplus results an error
+    # => otherwise the Check_MK generates an error due to missiing sections
+    echo "<<<oracle_version>>>"
+    echo "<<<oracle_instance>>>"
+    # We print the whole result to oracle_instance for debugging
+    echo "${OUTPUT}"  | sed "s/^/$SID FAILURE /" | grep "^"$SID" FAILURE ORA-"
+
+    echo "<<<oracle_sessions>>>"
+    echo "<<<oracle_processes>>>"
+    echo "<<<oracle_logswitches>>>"
+    echo "<<<oracle_undostat>>>"
+else
+    #
+    echo -e "$OUTPUT"
+fi
 }
 
   # #          #     #     #     ###  #     #          # #
@@ -404,6 +487,7 @@ for SID in $SIDS; do
 
     # MK_SQLTMPFILE is execute in sqlplus.sh at the end of the loop
     # we need an unique identifier for the sql-file
+    MK_SQLTMPDIR=/tmp
     MK_SQLTMPFILE=$MK_SQLTMPDIR"/.mk_oracle_oracle_"$SID"_"$(date +%s)".sql"
     MK_SQLTMPFILENOW=$MK_SQLTMPDIR"/.mk_oracle_oracle_"$SID"_now_"$(date +%s)".sql"
 
@@ -440,9 +524,15 @@ for SID in $SIDS; do
     cat ${MK_SQLTMPFILENOW}"_dummy" > ${MK_SQLTMPFILENOW}
     rm -f ${MK_SQLTMPFILENOW}"_dummy"
 
-    create_result_for_check resumable 1 $MK_SQLRESULT_DUMMY ${MK_SQLTMPFILENOW}"_dummy" do_spool_resumable
+    # create performance data for DB Time, CPU Time and wait Time
+    create_result_for_check perfdata 1 $MK_SQLRESULT_DUMMY ${MK_SQLTMPFILENOW}"_dummy" do_spool_perfdata
     cat ${MK_SQLTMPFILENOW}"_dummy" >> ${MK_SQLTMPFILENOW}
     rm -f ${MK_SQLTMPFILENOW}"_dummy"
+
+# vorerst entfernt, weil es noch Probleme mit Instancen im MOUNT-Status gibt!
+#    create_result_for_check resumable 1 $MK_SQLRESULT_DUMMY ${MK_SQLTMPFILENOW}"_dummy" do_spool_resumable
+#    cat ${MK_SQLTMPFILENOW}"_dummy" >> ${MK_SQLTMPFILENOW}
+#    rm -f ${MK_SQLTMPFILENOW}"_dummy"
 
     create_result_for_check undostat 1 $MK_SQLRESULT_DUMMY ${MK_SQLTMPFILENOW}"_dummy" do_spool_undostat
     cat ${MK_SQLTMPFILENOW}"_dummy" >> ${MK_SQLTMPFILENOW}
@@ -456,6 +546,20 @@ for SID in $SIDS; do
         sqlplus $SID <<_EOF_
 @$MK_SQLTMPFILENOW
 _EOF_
+
+    if [ ${?} -ne 0 ]
+    then
+        # We need to print the sections when sqlplus results an error
+        # => otherwise the Check_MK generates an error due to missiing sections
+        echo "<<<oracle_undostat>>>"
+    else
+        #
+        echo -e "$OUTPUT"
+    fi
+
+
+
+
     fi
 
     ###########################################################
@@ -476,17 +580,36 @@ _EOF_
             {
                 if OUTPUT=\$({ echo 'set pages 0 trimspool on' ; echo 'whenever OSERROR  EXIT ROLLBACK' ; echo 'whenever sqlerror exit 1'; echo 'set lines 8000' ; echo 'set feedback off'; cat ; } | $MK_CONFDIR/sqlplus.sh \$1)
                then
-                   echo \"\${OUTPUT}\" 
+                   export OUTPUT
+                   return 0
+                   #echo \"\${OUTPUT}\"
                else
-                   echo \"\${OUTPUT}\" | sed \"s/^/\$1 FAILURE /\"
+                   OUTPUT=\$\{OUTPUT\} | sed \"s/^/\$1 FAILURE /\"
+                   export OUTPUT
+                   return 1
+                   #echo \"\$\{OUTPUT\}\" | sed \"s/^/\$1 FAILURE /\"
                 fi
             }
         sqlplus "$SID" <<_EOF_
 @$MK_SQLTMPFILE
 _EOF_
+        if [ \${?} -ne 0 ]
+    then
+        # We need to print the sections when sqlplus results an error
+        # => otherwise the Check_MK generates an error due to missiing sections
+        echo '<<<oracle_tablespaces>>>'
+        echo '<<<oracle_ts_quotas>>>'
+        echo '<<<oracle_resumable>>>'
+        echo '<<<oracle_recovery_area>>>'
+        echo '<<<oracle_jobs>>>'
+    else
+        #
+        echo -e \"\$OUTPUT\"
+    fi
         "
     fi
 
     rm -f $MK_SQLTMPFILE $MK_SQLTMPFILENOW
 
 done
+
