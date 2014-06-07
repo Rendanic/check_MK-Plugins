@@ -1,0 +1,72 @@
+#!/usr/bin/python
+# -*- encoding: utf-8; py-indent-offset: 4 -*-
+# +------------------------------------------------------------------+
+# |             ____ _               _        __  __ _  __           |
+# |            / ___| |__   ___  ___| | __   |  \/  | |/ /           |
+# |           | |   | '_ \ / _ \/ __| |/ /   | |\/| | ' /            |
+# |           | |___| | | |  __/ (__|   <    | |  | | . \            |
+# |            \____|_| |_|\___|\___|_|\_\___|_|  |_|_|\_\           |
+# |                                                                  |
+# | Copyright Mathias Kettner 2013             mk@mathias-kettner.de |
+# | Copyright Thorsten Bruhns   thorsten.bruhns@opitz-consulting.com |
+# +------------------------------------------------------------------+
+#
+# This file is part of Check_MK.
+# The official homepage is at http://mathias-kettner.de/check_mk.
+#
+# check_mk is free software;  you can redistribute it and/or modify it
+# under the  terms of the  GNU General Public License  as published by
+# the Free Software Foundation in version 2.  check_mk is  distributed
+# in the hope that it will be useful, but WITHOUT ANY WARRANTY;  with-
+# out even the implied warranty of  MERCHANTABILITY  or  FITNESS FOR A
+# PARTICULAR PURPOSE. See the  GNU General Public License for more de-
+# ails.  You should have  received  a copy of the  GNU  General Public
+# License along with GNU Make; see the file  COPYING.  If  not,  write
+# to the Free Software Foundation, Inc., 51 Franklin St,  Fifth Floor,
+# Boston, MA 02110-1301 USA.
+
+#<<<oracle_resumable>>>
+# ORACLE_SID User SID Type Timeout <time in resumable> <start time> <errortext>
+# tux12c SYS 264 SUSPENDED 10000 1181 1652 03/12/14_18:42:59  ORA-01652: unable to extend temp segment by 128 in tablespace U1
+
+oracle_resumable_default_levels = (50, 80)
+
+def inventory_oracle_resumable(info):
+    inventory = []
+    for line in info:
+        ORACLE_SID = line[0]
+        inventory.append((ORACLE_SID, "oracle_resumable_default_levels"))
+    return inventory
+
+def check_oracle_resumable(item, params, info):
+    nagstatenum = 0
+    infotext = ""
+    for line in info:
+        if line[0] == item:
+            err = oracle_handle_ora_errors(line)
+            if err == False:
+                continue
+            elif isinstance(err, tuple):
+                return err
+
+            resumuser   = line[1]
+            resumsid    = line[2]
+            resumtimeout = int(line[4])
+            resumwait = int(line[5])
+
+            resumtimeoutpct = float(resumwait)/float(resumtimeout)*100
+            nagstatenum = 1
+            infotext += "Session %s, User %s waiting for %ss (!). timeout in %ss " \
+                        % (resumsid, resumuser, resumwait, resumtimeout-resumwait)
+
+        return (nagstatenum, infotext)
+    return (3, "UNKNOWN - Quotas not existing or not running")
+
+
+check_info['oracle_resumable'] = {
+    "check_function"          : check_oracle_resumable,
+    "inventory_function"      : inventory_oracle_resumable,
+    "service_description"     : "ORA %s Resumable Session",
+    "has_perfdata"            : False,
+    "group"                   : "oracle_resumable",
+}

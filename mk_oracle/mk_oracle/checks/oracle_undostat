@@ -1,0 +1,88 @@
+#!/usr/bin/python
+# -*- encoding: utf-8; py-indent-offset: 4 -*-
+# +------------------------------------------------------------------+
+# |             ____ _               _        __  __ _  __           |
+# |            / ___| |__   ___  ___| | __   |  \/  | |/ /           |
+# |           | |   | '_ \ / _ \/ __| |/ /   | |\/| | ' /            |
+# |           | |___| | | |  __/ (__|   <    | |  | | . \            |
+# |            \____|_| |_|\___|\___|_|\_\___|_|  |_|_|\_\           |
+# |                                                                  |
+# | Copyright Mathias Kettner 2013             mk@mathias-kettner.de |
+# | Copyright Thorsten Bruhns   thorsten.bruhns@opitz-consulting.com |
+# +------------------------------------------------------------------+
+#
+# This file is part of Check_MK.
+# The official homepage is at http://mathias-kettner.de/check_mk.
+#
+# check_mk is free software;  you can redistribute it and/or modify it
+# under the  terms of the  GNU General Public License  as published by
+# the Free Software Foundation in version 2.  check_mk is  distributed
+# in the hope that it will be useful, but WITHOUT ANY WARRANTY;  with-
+# out even the implied warranty of  MERCHANTABILITY  or  FITNESS FOR A
+# PARTICULAR PURPOSE. See the  GNU General Public License for more de-
+# ails.  You should have  received  a copy of the  GNU  General Public
+# License along with GNU Make; see the file  COPYING.  If  not,  write
+# to the Free Software Foundation, Inc., 51 Franklin St,  Fifth Floor,
+# Boston, MA 02110-1301 USA.
+
+#<<<oracle_undostat>>>
+# ACTIVEBLKS MAXCONCURRENCY TUNED_UNDORETENTION maxquerylen NOSPACEERRCNT
+# Limit for undo retention in seconds
+# 10 minutes for warning
+#  5 minutes for critical
+
+factory_settings["oracle_undostat_defaults"] = {
+    "retention"         : (600.0, 300.0),
+}
+
+def inventory_oracle_undostat(info):
+    inventory = []
+    for line in info:
+        ORACLE_SID = line[0]
+        inventory.append((ORACLE_SID, "oracle_undostat_defaults"))
+    return inventory
+
+def check_oracle_undostat(item, params, info):
+    for line in info:
+        if line[0] == item:
+            if line[1] == 'FAILURE':
+                break
+            warn = 100
+            crit = 20
+            warn, crit = params.get("retention")
+
+            oradbACTIVEBLKS = line[1]
+            oradbMAXCONCURRENCY = line[2]
+            oradbTUNED_UNDORETENTION = line[3]
+            oradbmaxquerylen = line[4]
+            oradbNOSPACEERRCNT = line[5]
+
+            nagstatenum = 0
+            undostate = ''
+            if int(oradbTUNED_UNDORETENTION) < crit:
+                nagstatenum = 2
+                undostate = '(!!) '
+            elif int(oradbTUNED_UNDORETENTION) < warn:
+                nagstatenum = 1
+                undostate = '(!) '
+
+
+            infotext = "%ss Undoretention %s(limit at %ss/%ss), %s active Undoblocks, " \
+                       "%s max concurrent transactions, %ss max querylen, %s space errorcount" \
+                % (oradbTUNED_UNDORETENTION, undostate, warn, crit, oradbACTIVEBLKS, oradbMAXCONCURRENCY, oradbmaxquerylen, oradbNOSPACEERRCNT)
+            perfdata =  [('activeblk', oradbACTIVEBLKS), \
+                         ('transconcurrent', oradbMAXCONCURRENCY), \
+                         ('tunedretention', oradbTUNED_UNDORETENTION, warn, crit, 0),\
+                         ('querylen', oradbmaxquerylen, "", "", 0),('nonspaceerrcount',oradbNOSPACEERRCNT)]
+            return (nagstatenum, infotext, perfdata)
+    return (3, "UNKNOWN - Database not existing or not running")
+
+check_info['oracle_undostat'] = {
+    "check_function"          : check_oracle_undostat,
+    "inventory_function"      : inventory_oracle_undostat,
+    "service_description"     : "ORA %s Undostat",
+    "has_perfdata"            : True,
+    "default_levels_variable" : "oracle_undostat_defaults",
+    "group"                   : "oracle_undostat",
+}
+

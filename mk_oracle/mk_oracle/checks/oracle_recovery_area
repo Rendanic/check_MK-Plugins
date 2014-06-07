@@ -1,0 +1,80 @@
+#!/usr/bin/python
+# -*- encoding: utf-8; py-indent-offset: 4 -*-
+# +------------------------------------------------------------------+
+# |             ____ _               _        __  __ _  __           |
+# |            / ___| |__   ___  ___| | __   |  \/  | |/ /           |
+# |           | |   | '_ \ / _ \/ __| |/ /   | |\/| | ' /            |
+# |           | |___| | | |  __/ (__|   <    | |  | | . \            |
+# |            \____|_| |_|\___|\___|_|\_\___|_|  |_|_|\_\           |
+# |                                                                  |
+# | Copyright Mathias Kettner 2013             mk@mathias-kettner.de |
+# | Copyright Thorsten Bruhns   thorsten.bruhns@opitz-consulting.com |
+# +------------------------------------------------------------------+
+#
+# This file is part of Check_MK.
+# The official homepage is at http://mathias-kettner.de/check_mk.
+#
+# check_mk is free software;  you can redistribute it and/or modify it
+# under the  terms of the  GNU General Public License  as published by
+# the Free Software Foundation in version 2.  check_mk is  distributed
+# in the hope that it will be useful, but WITHOUT ANY WARRANTY;  with-
+# out even the implied warranty of  MERCHANTABILITY  or  FITNESS FOR A
+# PARTICULAR PURPOSE. See the  GNU General Public License for more de-
+# ails.  You should have  received  a copy of the  GNU  General Public
+# License along with GNU Make; see the file  COPYING.  If  not,  write
+# to the Free Software Foundation, Inc., 51 Franklin St,  Fifth Floor,
+# Boston, MA 02110-1301 USA.
+
+# <<<oracle_recovery_area>>>
+# TUX12C 0 4800 19 0
+# ORACLE_SID used_pct size used reclaimable
+factory_settings["oracle_recovery_area_defaults"] = {
+    "levels"         : (70.0, 90.0),
+}
+
+def inventory_oracle_recovery_area(info):
+    inventory = []
+    for line in info:
+        ORACLE_SID = line[0]
+        inventory.append((ORACLE_SID, "oracle_recovery_area_defaults"))
+    return inventory
+
+def check_oracle_recovery_area(item, params, info):
+    perfdata = []
+    recovery_areastate = ''
+    for line in info:
+        if line[0] == item:
+            warn, crit = params.get("levels")
+
+            oradbrecoveryusedpct = line[1]
+            oradbrecoverysize = line[2]
+            oradbrecoveryused = line[3]
+            oradbrecoveryreclaimable = line[4]
+
+            nagstatenum = 0
+            recovery_areae = ''
+            if int(oradbrecoveryusedpct) > crit:
+                nagstatenum = 2
+                recovery_areastate = '(!!) '
+            elif int(oradbrecoveryusedpct) > warn:
+                nagstatenum = 1
+                recovery_areastate = '(!) '
+
+
+            infotext = "used %s%% %s (limit at %s%%/%s%%) size %s MB reclaimable %s MB " \
+                % (oradbrecoveryusedpct, recovery_areastate, warn, crit, oradbrecoverysize, oradbrecoveryused)
+
+            perfdata =  [('usedpct', oradbrecoveryusedpct, warn, crit,0 , 100)]
+
+            return (nagstatenum, infotext, perfdata)
+    return (3, "UNKNOWN - Database not existing or not running")
+
+check_info['oracle_recovery_area'] = {
+    "check_function"          : check_oracle_recovery_area,
+    "inventory_function"      : inventory_oracle_recovery_area,
+    "service_description"     : "ORA %s Recovery Area",
+    "has_perfdata"            : True,
+    "default_levels_variable" : "oracle_recovery_area_defaults",
+    "group"                   : "oracle_recovery_area",
+}
+
