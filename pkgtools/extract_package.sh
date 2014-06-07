@@ -1,4 +1,7 @@
 #!/bin/bash
+#
+# extracts data from Check_MK Package to current directory
+
 
 tmpdir=/tmp
 pkgname=$PWD/$1
@@ -8,7 +11,7 @@ pwd=$PWD
 extract_package() {
 	oldpwd=$PWD
 	cd /tmp
-	tar -xvzf $pkgname info
+	tar -xzf $pkgname info
 	packagename=$(grep "'name'" /tmp/info | cut -d"'" -f4)
 	export packagename
 	
@@ -21,10 +24,15 @@ extract_package() {
 
 extract_subarchiv() {
 	archivetype=$1
-	cd $pwd/$packagename
-	test -d $archivetype || mkdir $archivetype
-	cd $archivetype
-	tar -xf $tmppkgdir/${archivetype}.tar
+	tarfile=$tmppkgdir/${archivetype}.tar
+
+	if [ -f ${tarfilee} ]
+	then
+		cd $pwd/$packagename
+		test -d $archivetype || mkdir $archivetype
+		cd $archivetype
+		tar -xf $tmppkgdir/${archivetype}.tar
+	fi
 	
 }
 
@@ -34,15 +42,14 @@ extract_data() {
 	cd $pwd
 	test -d $packagename || mkdir $packagename
 	cd $packagename
-
-	extract_subarchiv agents
-	extract_subarchiv checks
-	extract_subarchiv pnp-templates
-	extract_subarchiv web
+	for archiv in $(cd /tmp/mk_oracle/ ; ls *tar | cut -d"." -f1)
+	do
+		extract_subarchiv ${archiv}
+	done
 
 }
 
 extract_package
+echo "Working on "$packagename
 extract_data
-echo $packagename
 
