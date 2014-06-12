@@ -68,8 +68,6 @@ def check_oracle_instance(item, params, info):
                 oradbuptime = line[10]
                 oradbname = line[11]
 
-                print oradbrole + oradbopenmode
-
                 if oradbrole == 'PRIMARY' and oradbopenmode <> 'OPEN':
                     nagiosstate = 2
                     nagiosstatestr = 'CRITICAL'

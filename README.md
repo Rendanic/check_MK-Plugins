@@ -1,6 +1,6 @@
 Packages for Check_MK
 
-Homepage of Check_MK: http://mathias*kettner.de/check_mk.html
+Homepage of Check_MK: http://mathias-kettner.de/check_mk.html
 
 # mk_oracle
 This is a redesign of the original mk_oracle from Check_MK.
@@ -17,24 +17,25 @@ This is a redesign of the original mk_oracle from Check_MK.
 * Instance goes CRITICAL, when Instance is not OPEN and Primary
 * no need to configure sqlplus.sh anymore
 * connect as sysdba is possible with mk_oracle_dbuser.conf
-* Undo* and Temp*Tablespace are not notified
+* Undo- and Temp-Tablespace are not notified
 * Reduced number of connections to Oracle
-* some checks are executed in background * reduce the execution time of agent
+* some checks are executed in background - reduce the execution time of agent
 
 ## new checks compared to original mk_oracle
 * Instancecheck with more details about the instance
 * undo Monitoring
-* RMAN*Backup
-* Fast*Recovery*Area
-* Tablespace*Quotas
+* RMAN-Backup
+* Fast-Recovery-Area
+* Tablespace-Quotas
 
 ## known issues:
 * Exclude and Include configurations are not completly implemented atm
 * not all rules in WATO are usable
-* some pnp*templates are missing
-* man*pages are missing
+* some pnp-templates are missing
+* man-pages are missing
 
 ## Version History
+* 0.7.4: Bugfix removed nasty debug print from oracle_instance
 * 0.7.3: Bugfix in oracle_instance
 * 0.7.2: Bugfix sqlplus.sh for EZCONNECT
 * 0.7.1: 1st big release on github
