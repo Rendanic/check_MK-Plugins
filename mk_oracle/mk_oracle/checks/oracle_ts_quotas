@@ -25,12 +25,14 @@
 # to the Free Software Foundation, Inc., 51 Franklin St,  Fifth Floor,
 # Boston, MA 02110-1301 USA.
 
+# This check is cluster aware!
+# Result of check is OK, WARNING or CRITICAL, when 1 instance is reporting
+# a state != UNKNOWN
+
 #<<<oracle_undostat>>>
 # <ORACLE_SID> <USER> <Tablespace> <used percent> <used MB> <Limit MB>
 #TUX12C GSMADMIN_INTERNAL SYSAUX 1 .9375 100
 
-# ACTIVEBLKS MAXCONCURRENCY TUNED_UNDORETENTION maxquerylen NOSPACEERRCNT
-# Limit for undo retention in seconds
 
 factory_settings["oracle_ts_quotas_defaults"] = {
     "levels"         : (70.0, 90.0),
@@ -39,7 +41,7 @@ factory_settings["oracle_ts_quotas_defaults"] = {
 def inventory_oracle_ts_quotas(info):
     inventory = []
     for line in info:
-        ORACLE_SID = line[0]
+        ORACLE_SID = line[1]
         inventory.append((ORACLE_SID, "oracle_ts_quotas_defaults"))
     return inventory
 
@@ -47,12 +49,12 @@ def check_oracle_ts_quotas(item, params, info):
     nagstatenum = 0
     infotext = ""
     for line in info:
-        if line[0] == item:
-            quotauser   = line[1]
-            quotatbs    = line[2]
-            quotausedpct= int(line[3])
-            quotausedmb= line[4]
-            quotamaxmb    = line[5]
+        if line[1] == item:
+            quotauser   = line[2]
+            quotatbs    = line[3]
+            quotausedpct= int(line[4])
+            quotausedmb= line[5]
+            quotamaxmb    = line[6]
 
             # Check Users for quotas
             warn, crit = params.get("levels")
@@ -75,6 +77,7 @@ check_info['oracle_ts_quotas'] = {
     "inventory_function"      : inventory_oracle_ts_quotas,
     "service_description"     : "ORA %s Quotas",
     "has_perfdata"            : False,
+    "node_info"               : True,
     "default_levels_variable" : "oracle_ts_quotas_defaults",
     "group"                   : "oracle_ts_quotas",
 }

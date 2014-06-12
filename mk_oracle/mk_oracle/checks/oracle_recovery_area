@@ -35,7 +35,7 @@ factory_settings["oracle_recovery_area_defaults"] = {
 def inventory_oracle_recovery_area(info):
     inventory = []
     for line in info:
-        ORACLE_SID = line[0]
+        ORACLE_SID = line[1]
         inventory.append((ORACLE_SID, "oracle_recovery_area_defaults"))
     return inventory
 
@@ -43,13 +43,13 @@ def check_oracle_recovery_area(item, params, info):
     perfdata = []
     recovery_areastate = ''
     for line in info:
-        if line[0] == item:
+        if line[1] == item:
             warn, crit = params.get("levels")
 
-            oradbrecoveryusedpct = line[1]
-            oradbrecoverysize = line[2]
-            oradbrecoveryused = line[3]
-            oradbrecoveryreclaimable = line[4]
+            oradbrecoveryusedpct = line[2]
+            oradbrecoverysize = line[3]
+            oradbrecoveryused = line[4]
+            oradbrecoveryreclaimable = line[5]
 
             nagstatenum = 0
             recovery_areae = ''
@@ -74,6 +74,7 @@ check_info['oracle_recovery_area'] = {
     "inventory_function"      : inventory_oracle_recovery_area,
     "service_description"     : "ORA %s Recovery Area",
     "has_perfdata"            : True,
+    "node_info"               : True,
     "default_levels_variable" : "oracle_recovery_area_defaults",
     "group"                   : "oracle_recovery_area",
 }

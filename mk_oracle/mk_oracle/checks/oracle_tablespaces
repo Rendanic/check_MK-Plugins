@@ -193,31 +193,39 @@ def check_oracle_tablespaces(item, params, info):
                 else:
                     # old behaivor is all Tablespaces are treated as PERMANENT
                     ts_type = 'PERMANENT'
-                ts_status = line[11]
+
+                dbfstate = line[3]
+                dbfautoextend = line[4]
+                dbfblocks = int(line[5])
+                dbfblocksmax = int(line[6])
+                dbfnextextend = int(line[8])
                 blocksize = int(line[10])
+                ts_status = line[11]
+                dbfblocksused = int(line[12])
+
                 num_files += 1
-                if line[3] in [ "AVAILABLE", "ONLINE", "READONLY" ]:
+                if dbfstate in [ "AVAILABLE", "ONLINE", "READONLY" ]:
                     num_avail += 1
-                    current_size += blocksize * int(line[5])
-                    used += blocksize * (int(line[5]) - int(line[12]))
+                    current_size += blocksize * dbfblocks
+                    used += blocksize * (dbfblocks - dbfblocksused)
                     # Autoextensible? Honor max size
-                    if line[4] == "YES":
+                    if dbfautoextend == "YES":
                         num_extensible += 1
-                        my_max_size = blocksize * int(line[6])
+                        my_max_size = blocksize * dbfblocksmax
                         max_size += my_max_size
-                        free_bl = int(line[6]) - int(line[5]) # number of free extension blocks
-                        incsize = int(line[8]) # size of next increment in blocks
+                        free_bl = dbfblocksmax - dbfblocks # number of free extension blocks
+                        incsize = dbfnextextend # size of next increment in blocks
                         if incsize == 1:
                             uses_default_increment = True
                         incs = free_bl / incsize
                         num_increments += incs
                         increment_size += blocksize * incsize * incs
-                        free_space += blocksize * (incsize * incs + (int(line[12])))
+                        free_space += blocksize * (incsize * incs + (dbfblocksused))
                     # not autoextensible: take current size as maximum
                     else:
-                        my_max_size = blocksize * int(line[5])
+                        my_max_size = blocksize * dbfblocks
                         max_size += my_max_size
-                        free_space += blocksize *  int(line[12])
+                        free_space += blocksize * dbfblocksused
 
 
     if ts_status == None:

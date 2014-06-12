@@ -79,3 +79,4 @@ check_info['oracle_processes'] = {
     "default_levels_variable" : "oracle_processes_defaults",
     "group"                   : "oracle_processes",
 }
+
