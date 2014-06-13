@@ -344,6 +344,12 @@ create_result_for_check()
             # Is the cached file outdated?
             MTIME=$(cat ${loc_MK_SQLRESULT}.timestamp)
             if [ $(($NOW - $MTIME)) -gt $loc_CACHE_MAXAGE ]; then
+                # we need to spool the old data
+                # => preventing UNKNOWNs due to missing data
+                if [ -f ${loc_MK_SQLRESULT} ]; then
+                    # spool an exiting
+                    cat $loc_MK_SQLRESULT
+                fi
                 # create sql for $CHECK_NAME
                 $loc_DO_SPOOL_NAME $loc_MK_SQLTMPFILE $loc_MK_SQLRESULT
             else
@@ -355,6 +361,7 @@ create_result_for_check()
             $loc_DO_SPOOL_NAME $loc_MK_SQLTMPFILE $loc_MK_SQLRESULT
         fi
     fi
+set +x
 }
 
 do_version_checks()
