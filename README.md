@@ -35,6 +35,7 @@ This is a redesign of the original mk_oracle from Check_MK.
 * man-pages are missing
 
 ## Version History
+* 0.7.5: Bugfix UNKNOWN services every 10 minutes from mk_oracle 
 * 0.7.4: Bugfix removed nasty debug print from oracle_instance
 * 0.7.3: Bugfix in oracle_instance
 * 0.7.2: Bugfix sqlplus.sh for EZCONNECT
