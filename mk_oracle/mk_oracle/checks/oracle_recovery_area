@@ -8,7 +8,6 @@
 # |            \____|_| |_|\___|\___|_|\_\___|_|  |_|_|\_\           |
 # |                                                                  |
 # | Copyright Mathias Kettner 2013             mk@mathias-kettner.de |
-# | Copyright Thorsten Bruhns   thorsten.bruhns@opitz-consulting.com |
 # +------------------------------------------------------------------+
 #
 # This file is part of Check_MK.
@@ -27,54 +26,52 @@
 
 # <<<oracle_recovery_area>>>
 # TUX12C 0 4800 19 0
+
+# Columns:
 # ORACLE_SID used_pct size used reclaimable
+
 factory_settings["oracle_recovery_area_defaults"] = {
     "levels"         : (70.0, 90.0),
 }
 
+
 def inventory_oracle_recovery_area(info):
-    inventory = []
-    for line in info:
-        ORACLE_SID = line[1]
-        inventory.append((ORACLE_SID, "oracle_recovery_area_defaults"))
-    return inventory
+    return [ (line[0], {}) for line in info ]
+
 
 def check_oracle_recovery_area(item, params, info):
-    perfdata = []
-    recovery_areastate = ''
     for line in info:
-        if line[1] == item:
-            warn, crit = params.get("levels")
+        if line[0] == item:
+            size_mb, used_mb, reclaimable_mb = map(int, line[2:5])
+            perc_used = float(used_mb - reclaimable_mb) / size_mb * 100
+            warn, crit = params["levels"]
+            warn_mb = size_mb * warn / 100
+            crit_mb = size_mb * crit / 100
 
-            oradbrecoveryusedpct = line[2]
-            oradbrecoverysize = line[3]
-            oradbrecoveryused = line[4]
-            oradbrecoveryreclaimable = line[5]
+            if perc_used >= crit:
+                state = 2
+            elif perc_used >= warn:
+                state = 1
+            else:
+                state = 0
 
-            nagstatenum = 0
-            recovery_areae = ''
-            if int(oradbrecoveryusedpct) > crit:
-                nagstatenum = 2
-                recovery_areastate = '(!!) '
-            elif int(oradbrecoveryusedpct) > warn:
-                nagstatenum = 1
-                recovery_areastate = '(!) '
+            mb = 1024*1024
+            return state, "%s out of %s used (%.1f%%, levels at %s%%/%s%%), %s reclaimable" \
+                % (get_bytes_human_readable(used_mb*mb), get_bytes_human_readable(size_mb*mb), \
+                   perc_used, warn, crit, get_bytes_human_readable(reclaimable_mb*mb)), \
+                   [('used', used_mb, warn_mb, crit_mb, 0, size_mb), ('reclaimable', reclaimable_mb)]
 
+    # In case of missing information we assume that the login into
+    # the database has failed and we simply skip this check. It won't
+    # switch to UNKNOWN, but will get stale.
+    raise MKCounterWrapped(None, "Login into database failed")
 
-            infotext = "used %s%% %s (limit at %s%%/%s%%) size %s MB reclaimable %s MB " \
-                % (oradbrecoveryusedpct, recovery_areastate, warn, crit, oradbrecoverysize, oradbrecoveryused)
-
-            perfdata =  [('usedpct', oradbrecoveryusedpct, warn, crit,0 , 100)]
-
-            return (nagstatenum, infotext, perfdata)
-    return (3, "UNKNOWN - Database not existing or not running")
 
 check_info['oracle_recovery_area'] = {
     "check_function"          : check_oracle_recovery_area,
     "inventory_function"      : inventory_oracle_recovery_area,
     "service_description"     : "ORA %s Recovery Area",
     "has_perfdata"            : True,
-    "node_info"               : True,
     "default_levels_variable" : "oracle_recovery_area_defaults",
     "group"                   : "oracle_recovery_area",
 }
