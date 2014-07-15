@@ -1,125 +1,110 @@
 checkgroups = []
 subgroup_oracle =           _("Oracle Resources")
 
-checkgroups.append((
-    subgroup_applications,
+register_check_parameters(
+     subgroup_applications,
     "oracle_processes",
     _("Oracle Processes"),
     Dictionary(
-        elements = [
-            ("levels",
+          help = _("Here you can override the default levels for the ORACLE Processes check. The levels "
+                   "are applied on the number of used processes in percentage of the configured limit."),
+          elements = [
+              ( "levels",
                 Tuple(
-                    title = _("Processes"),
+                    title = _("Levels for used processes"),
                     elements = [
-                      Float(title = _("warning at"), unit = _("%")),
-                      Float(title = _("critical at"), unit = _("%"))
+                        Percentage(title = _("Warning if more than"), default_value = 70.0),
+                        Percentage(title = _("Critical if more than"), default_value = 90.0)
                     ]
                 )
-            )
-        ]
+             ),
+          ],
+          optional_keys = False,
     ),
     TextAscii(
-        title = _("ORACLE SID"),
-        allow_empty = True),
-    "first"
-))
+        title = _("Database SID"),
+        size = 12,
+        allow_empty = False),
+    "dict",
+)
 
-checkgroups.append((
-    subgroup_applications,
-    "oracle_rman",
-    _("Oracle RMAN Backup"),
-    Dictionary(
-        elements = [
-            ("age_min",
-                Tuple(
-                    title = _("age of backup"),
-                    elements = [
-                      Float(title = _("warning older"), unit = _("minutes")),
-                      Float(title = _("critical older"), unit = _("minutes"))
-                    ]
-                )
-            )
-        ]
-    ),
-    TextAscii(
-        title = _("Database-Name"),
-        allow_empty = True),
-    "first"
-))
-
-checkgroups.append((
+register_check_parameters(
     subgroup_applications,
     "oracle_recovery_area",
     _("Oracle Recovery Area"),
     Dictionary(
-        elements = [
-            ("levels",
-                Tuple(
-                    title = _("Recovery Area"),
-                    elements = [
-                      Float(title = _("warning at"), unit = _("%")),
-                      Float(title = _("critical at"), unit = _("%"))
-                    ]
-                )
-            )
-        ]
+         elements = [
+             ("levels",
+                 Tuple(
+                     title = _("Levels for used space (reclaimable is considered as free)"),
+                     elements = [
+                       Percentage(title = _("warning at"), default_value = 70.0),
+                       Percentage(title = _("critical at"), default_value = 90.0),
+                     ]
+                 )
+             )
+         ]
     ),
     TextAscii(
-        title = _("ORACLE SID"),
-        allow_empty = True),
-    "first"
-))
+        title = _("Database SID"),
+        size = 12,
+        allow_empty = False),
+    "dict",
+)
 
-checkgroups.append((
+register_check_parameters(
     subgroup_applications,
-    "oracle_ts_quotas",
-    _("Oracle Tablespace Quotas"),
-    Dictionary(
-        elements = [
-            ("levels",
-                Tuple(
-                    title = _("Tablespace Quotas"),
-                    elements = [
-                      Float(title = _("warning at"), unit = _("%")),
-                      Float(title = _("critical at"), unit = _("%"))
-                    ]
-                )
-            )
-        ]
-    ),
-    TextAscii(
-        title = _("ORACLE SID"),
-        allow_empty = True),
-    "first"
-))
-
-checkgroups.append((
-    subgroup_storage,
     "oracle_undostat",
-    _("Oracle Undostat"),
+    _("Oracle Undo Retention"),
     Dictionary(
-        elements = [
-            ("retention",
-                Tuple(
-                    title = _("Undo Retention"),
-                    elements = [
-                      Float(title = _("warning lower"), unit = _("s")),
-                      Float(title = _("critical lower"), unit = _("s"))
-                    ]
-                )
-            )
-        ]
+         elements = [
+             ("levels",
+                 Tuple(
+                     title = _("Levels for remaining undo retention"),
+                     elements = [
+                          Age(title = _("warning if less then"), default_value = 600),
+                          Age(title = _("critical if less then"), default_value = 300),
+                     ]
+                 )
+             )
+         ]
     ),
     TextAscii(
-        title = _("ORACLE SID"),
-        allow_empty = True),
-    "first"
-))
+        title = _("Database SID"),
+        size = 12,
+        allow_empty = False),
+    "dict",
+)
+
+register_check_parameters(
+    subgroup_applications,
+    "oracle_rman",
+    _("Oracle RMAN  Backup"),
+    Dictionary(
+         elements = [
+             ("levels",
+                 Tuple(
+                     title = _("Levels for maximum age of an RMAN Backup"),
+                     elements = [
+                          Age(title = _("warning if older then"), default_value = 600),
+                          Age(title = _("critical if older then"), default_value = 300),
+                     ]
+                 )
+             )
+         ]
+    ),
+    TextAscii(
+        title = _("Explicit RMAN Backups"),
+        help = _("Here you can set explicit RMAN Backuptypes by defining them via SID and the Backuptype name, separated by a dot, for example <b>pengt.ARCHIVELOG</b>"),
+        regex = '.+\..+',
+        allow_empty = False),
+    "dict",
+)
 
 
 
 # Create rules for check parameters of inventorized checks
-for subgroup, checkgroup, title, valuespec, itemspec, matchtype in checkgroups:
-    register_check_parameters(subgroup, checkgroup, title, valuespec, itemspec, matchtype)
+#for subgroup, checkgroup, title, valuespec, itemspec, matchtype in checkgroups:
+#    register_check_parameters(subgroup, checkgroup, title, valuespec, itemspec, matchtype)
 
 
