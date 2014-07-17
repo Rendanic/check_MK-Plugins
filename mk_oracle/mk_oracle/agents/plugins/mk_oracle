@@ -40,12 +40,12 @@
 #   '----------------------------------------------------------------------'
 
 # Sections that run fast and do no caching
-SYNC_SECTIONS="instance sessions logswitches undostat recovery_area processes resumable ts_quotas"
+SYNC_SECTIONS="instance sessions logswitches undostat recovery_area processes recovery_status"
 
 # Sections that are run in the background and at a larger interval.
 # Note: sections not listed in SYNC_SECTIONS or ASYNC_SECTIONS will not be
 # executed at all!
-ASYNC_SECTIONS="tablespaces ts_quotas rman jobs"
+ASYNC_SECTIONS="tablespaces ts_quotas rman jobs ts_quotas resumable"
 
 # Sections that are run in the background and at a larger interval.
 # Note: _ASM_ sections are only executed when SID starts with '+'
@@ -156,6 +156,25 @@ sql_92_tablespaces()
                 f.autoextensible, f.blocks, f.maxblocks, f.user_blocks, f.increment_by,
                 'TEMP', t.block_size, t.status);
           "
+}
+
+sql_recovery_status()
+{
+    echo 'PROMPT <<<oracle_recovery_status:sep(124)>>>'
+    echo "SELECT upper(d.NAME)
+                 ||'|'|| d.DB_UNIQUE_NAME
+                 ||'|'|| d.DATABASE_ROLE
+                 ||'|'|| d.open_mode
+                 ||'|'|| dh.file#
+                 ||'|'|| round((dh.CHECKPOINT_TIME-to_date('01.01.1970','dd.mm.yyyy'))*24*60*60)
+                 ||'|'|| round((sysdate-dh.CHECKPOINT_TIME)*24*60*60)
+                 ||'|'|| dh.STATUS
+                 ||'|'|| dh.RECOVER
+                 ||'|'|| dh.FUZZY
+                 ||'|'|| dh.CHECKPOINT_CHANGE#
+          FROM  V\$datafile_header dh, v\$database d, v\$instance i
+          ORDER BY dh.file#;
+         "
 }
 
 sql_rman()
@@ -373,7 +392,45 @@ sql_112_asm_diskgroup()
          "
 }
 
-#.
+# Runs a command asynchronous by use of a cache file
+function run_cached () {
+    local section=
+    if [ "$1" = -s ] ; then local section="echo '<<<$2>>>' ; " ; shift ; fi
+    local NAME=$1
+    local MAXAGE=$2
+    shift 2
+    local CMDLINE="$section$@"
+
+    if [ ! -d $MK_CONFDIR/cache ]; then mkdir -p $MK_CONFDIR/cache ; fi
+    CACHEFILE="$MK_CONFDIR/cache/$NAME.cache"
+
+    # Check if the creation of the cache takes suspiciously long and return
+    # nothing if the age (access time) of $CACHEFILE.new is twice the MAXAGE
+    local NOW=$(date +%s)
+    if [ -e "$CACHEFILE.new" ] ; then
+        local CF_ATIME=$(stat -c %X "$CACHEFILE.new")
+        if [ $((NOW - CF_ATIME)) -ge $((MAXAGE * 2)) ] ; then
+            return
+        fi
+    fi
+
+
+    # Check if cache file exists and is recent enough
+    if [ -s "$CACHEFILE" ] ; then
+        local MTIME=$(stat -c %Y "$CACHEFILE")
+        if [ $((NOW - MTIME)) -le $MAXAGE ] ; then local USE_CACHEFILE=1 ; fi
+        # Output the file in any case, even if it is
+        # outdated. The new file will not yet be available
+        cat "$CACHEFILE"
+    fi
+
+    # Cache file outdated and new job not yet running? Start it
+    if [ -z "$USE_CACHEFILE" -a ! -e "$CACHEFILE.new" ] ; then
+        echo "set -o noclobber ; exec > \"$CACHEFILE.new\" || exit 1 ; $CMDLINE && mv \"$CACHEFILE.new\" \"$CACHEFILE\" || rm -f \"$CACHEFILE\" \"$CACHEFILE.new\"" | nohup bash 2>/dev/null &
+    fi
+}
+
+#
 #   .--Functions-----------------------------------------------------------.
 #   |             _____                 _   _                              |
 #   |            |  ___|   _ _ __   ___| |_(_) ___  _ __  ___              |
