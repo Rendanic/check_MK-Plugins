@@ -48,6 +48,9 @@ def check_oracle_instance(item, _no_params, info):
                 sid, version, openmode, logins, archiver, dummy, dbid, \
                     log_mode, database_role, force_logging, up_seconds, name = line
 
+                # bugifx for an error in mk_oracle agent with missing round over uptime
+                up_seconds = int(up_seconds.replace('.',',').split(',',1)[0])
+
 
             state = 0
             infotext = "Database Name %s, Status %s" % (name, openmode)

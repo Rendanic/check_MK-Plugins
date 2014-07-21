@@ -11,10 +11,10 @@ is a backport for Check_MK 1.2.2 or newer. It should run on older versions
 as well but it is not tested on it.
 
 ## Requirements:
-* Oracle 9.2 or higher
-* tested on Linux, AIX 5.3
-* tested with Check_MK 1.2.2, may work with future versions
-* ':' in password not allowed when mk_oracle_dbuser.conf is used
+* Linux   RDBMS 9.2, 10.2, 11.2, XE 11.2
+* AIX 5.3 RDBMS 11.2
+* Check_MK Agent 1.2.2p2 or newer
+* mk_oracle_dbuser.conf: ':' in password not allowed
 
 ## notable changes to original mk_oracle:
 * ORACLE_SID is converted to uppercase service_name in Check_MK
@@ -40,6 +40,7 @@ as well but it is not tested on it.
 
 ## Version History
 
+* 1.1.1: Bugfix oracle_instance & oracle_jobs, some perfometers
 * 1.1.0: New Recovery State for Standby Databases
 * 1.0.0: Redesign of whole plugin
 * 0.7.5: Bugfix UNKNOWN services every 10 minutes from mk_oracle 

@@ -51,9 +51,29 @@ perfometers["check_mk-oracle_recovery_area"]           = perfometer_check_oracle
 
 def perfometer_check_oracle_undostat(row, check_command, perf_data):
 
+    color = { 0: "#a4f", 1: "#ff2", 2: "#f22", 3: "#fa2" }[row["service_state"]]
     hours,    rest    = divmod(int(perf_data[2][1]), 60*60)
     minutes, seconds = divmod(rest,      60)
 
-    return "%02dh %02dm" % (hours, minutes), perfometer_logarithmic(perf_data[2][1], 2592000, 2, '#80F000')
+    return "%02dh %02dm" % (hours, minutes), perfometer_logarithmic(perf_data[2][1], 2592000, 2, color)
 
 perfometers["check_mk-oracle_undostat"] = perfometer_check_oracle_undostat
+
+
+def perfometer_check_oracle_recovery_status(row, check_command, perf_data):
+
+    color = { 0: "#a4f", 1: "#ff2", 2: "#f22", 3: "#fa2" }[row["service_state"]]
+
+    hours,    rest    = divmod(int(perf_data[0][1]), 60*60)
+    minutes, seconds = divmod(rest,      60)
+    if perf_data[0][4] == "":
+        pct = 0
+    else:
+        pct = float(perf_data[0][1])/float(perf_data[0][4])*100
+        if pct > 100:
+            pct = 100
+
+    text = str(pct)
+    return "%02dh %02dm" % (hours, minutes), perfometer_linear(pct, color)
+
+perfometers["check_mk-oracle_recovery_status"] = perfometer_check_oracle_recovery_status
