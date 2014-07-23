@@ -1,0 +1,50 @@
+"""
+$Id: oracle_gi 1048 2013-10-19 15:56:44Z tbr $
+"""
+#
+# check_mk is free software;  you can redistribute it and/or modify it
+# under the  terms of the  GNU General Public License  as published by
+# the Free Software Foundation in version 2.  check_mk is  distributed
+# in the hope that it will be useful, but WITHOUT ANY WARRANTY;  with-
+# out even the implied warranty of  MERCHANTABILITY  or  FITNESS FOR A
+# PARTICULAR PURPOSE. See the  GNU General Public License for more de-
+# ails.  You should have  received  a copy of the  GNU  General Public
+# License along with GNU Make; see the file  COPYING.  If  not,  write
+# to the Free Software Foundation, Inc., 51 Franklin St,  Fifth Floor,
+# Boston, MA 02110-1301 USA.
+
+
+# the inventory function (dummy)
+def inventory_oracle_gridinfra(info):
+    inventory = []
+    for line in info:
+        if line[0] in ('CRSD', 'Typ'):
+            inventory.append((line[0], None))
+    return inventory
+
+# the check function (dummy)
+def check_oracle_gridinfra(item, params, info):
+    for line in info:
+        if line[0] == item:
+            if line[0] in ('CRSD') and line:
+                if line[1] == 'ONLINE':
+                    return (0, 'CRSD ONLINE')
+                else:
+                    return (2, 'CRSD not running')
+
+            elif line[0] in ('Typ'):
+                outstr = ''
+                for item in line[1:]:
+                    outstr = outstr + item + ' '
+                return (0, outstr)
+
+    return (3, "no check result found")
+
+
+# declare the check to Check_MK
+check_info["oracle_gi"] = {
+    'check_function':            check_oracle_gridinfra,
+    'inventory_function':        inventory_oracle_gridinfra,
+    'service_description':       'ORA-GI',
+}
+
