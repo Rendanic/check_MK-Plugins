@@ -33,6 +33,8 @@ as well but it is not tested on it.
 * Fast-Recovery-Area
 * Tablespace-Quotas
 * Recovery State of a Standby Database
+* Locks from v$lock
+* Long Active Sessions
 
 ## known issues:
 * some pnp-templates are missing
@@ -40,6 +42,7 @@ as well but it is not tested on it.
 
 ## Version History
 
+* 1.2.0: New oracle_locks, oracle_longactivesessions Bugfix oracle_job, oracle_recovery_status. More feautures in sqlplus.sh
 * 1.1.1: Bugfix oracle_instance & oracle_jobs, some perfometers
 * 1.1.0: New Recovery State for Standby Databases
 * 1.0.0: Redesign of whole plugin

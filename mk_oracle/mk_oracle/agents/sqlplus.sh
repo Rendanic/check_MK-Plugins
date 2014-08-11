@@ -67,6 +67,16 @@ then
 fi
 
 ORACLE_HOME=$(cat ${ORATAB} | grep "^"${ORACLE_SID}":" | cut -d":" -f2)
+if [ -z $ORACLE_HOME ] ; then
+    # cut last number from SID for Oracle RAC to find entry in oratab
+    ORACLE_SID_SHORT=$(echo $ORACLE_SID | sed "s/[0-9]$//")
+    ORACLE_HOME=$(cat ${ORATAB} | grep "^"${ORACLE_SID_SHORT}":" | cut -d":" -f2)
+fi
+
+if [ ! -d ${ORACLE_HOME:-"not_found"} ] ; then
+    echo "ORA-99999 ORACLE_HOME for ORACLE_SID="$ORACLE_SID" not found or not existing!"
+    exit 1
+fi
 
 export TNS_ADMIN=/etc/check_mk
 
@@ -92,36 +102,45 @@ then
 		echo "ORA-99999 tnsping failed for "${ORACLE_SID}
 		exit 1
 	fi
-	# Do we have a configuration file for SID:USER:PASSWORD?
-	# => Wallet is availible from 10.2 onwards!
-	if [ ! -f ${ORACLE_USERCONF} ]
-	then
-		DBCONNECT="/@"${ORACLE_SID}
-	else
-		# We don't us a wallet!
-		dbconfline=$(cat ${ORACLE_USERCONF} | grep "^"${ORACLE_SID}":")
-		if [ ! ${dbconfline} ]
-		then
-			# no configuration for ORACLE_SID found
-			# => use the wallet with tnsnames.ora!
-			DBCONNECT=${DBUSER}/"${DBPASSWORD}@"${ORACLE_SID}
-		else
-			DBUSER=$(echo ${dbconfline} | cut -d":" -f2)
-			DBPASSWORD=$(echo ${dbconfline} | cut -d":" -f3)
-			# connect as sysdba/sysoper?
-			DBSYSCONNECT=$(echo ${dbconfline} | cut -d":" -f4)
-			if [ ${DBSYSCONNECT} ]
-			then
-				DBCONNECT=${DBUSER}/"${DBPASSWORD}@"${ORACLE_SID}" as "${DBSYSCONNECT}
-			else
-				DBCONNECT=${DBUSER}/"${DBPASSWORD}@"${ORACLE_SID}
-			fi
-		fi
-	fi
-else
-	# EZCONNECT
-	DBCONNECT=/@"localhost/"${ORACLE_SID}
 fi
+
+# we have a configuration file for SID:USER:PASSWORD?
+if [ ! -f ${ORACLE_USERCONF} ] ; then
+    # use EZCONNECT
+    DBUSER=""
+    DBPASSWORD=""
+else
+    # connect as sysdba/sysoper?
+    DBSYSCONNECT=$(echo ${dbconfline} | cut -d":" -f4)
+    if [ ${DBSYSCONNECT} ] ; then
+        assysdbaconnect=" as "${DBSYSCONNECT}
+    fi
+
+    dbconfline=$(cat ${ORACLE_USERCONF} | grep "^"${ORACLE_SID}":")
+    if [ ! ${dbconfline} ] ; then
+        # no configuration for ORACLE_SID found
+        # => use the wallet with tnsnames.ora!
+        DBUSER=""
+        DBPASSWORD=""
+    else
+        # connect as sysdba/sysoper?
+        DBSYSCONNECT=$(echo ${dbconfline} | cut -d":" -f4)
+        if [ ${DBSYSCONNECT} ] ; then
+            assysdbaconnect=" as "${DBSYSCONNECT}
+        fi
+
+        DBUSER=$(echo ${dbconfline} | cut -d":" -f2)
+        DBPASSWORD=$(echo ${dbconfline} | cut -d":" -f3)
+        # DBUSER = '/'?
+        # => ignore DBPASSWORD and use the wallet with tnsnames.ora
+        if [ ${DBUSER} = '/' ] ; then
+            DBUSER=""
+            DBPASSWORD=""
+        fi
+    fi
+fi
+
+DBCONNECT=${DBUSER}/"${DBPASSWORD}@"${ORACLE_SID}${assysdbaconnect}
 
 SQLPLUS=${ORACLE_HOME}/bin/sqlplus
 if [ ! -x ${SQLPLUS} ]

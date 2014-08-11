@@ -28,42 +28,54 @@
 # TUX12C 0 4800 19 0
 
 # Columns:
-# ORACLE_SID used_pct size used reclaimable
+# ORACLE_SID serial# machine process osuser program last_call_el sql_id
 
-factory_settings["oracle_recovery_area_defaults"] = {
-    "levels"         : (70.0, 90.0),
+factory_settings["oracle_longactivesessions_defaults"] = {
+    "levels"         : (500, 1000),
 }
 
 
-def inventory_oracle_recovery_area(info):
+def inventory_oracle_longactivesessions(info):
     return [ (line[0], {}) for line in info ]
 
 
-def check_oracle_recovery_area(item, params, info):
+def check_oracle_longactivesessions(item, params, info):
     for line in info:
-        if line[0] == item:
-            size_mb, used_mb, reclaimable_mb = map(int, line[2:5])
-            if size_mb == 0:
-                perc_used = 0
-            else:
-                perc_used = float(used_mb - reclaimable_mb) / size_mb * 100
 
-            warn, crit = params["levels"]
-            warn_mb = size_mb * warn / 100
-            crit_mb = size_mb * crit / 100
+        sessioncount = 0
+        state = 3
 
-            if perc_used >= crit:
+        warn, crit = params["levels"]
+
+        if line[0] == item and line[1] != '':
+
+            sessioncount += 1
+            sid, sidnr, serial, machine, process, osuser, program, \
+            last_call_el, sql_id = line
+
+            longoutput = 'sid,serial,process %s,%s,%s active for %s from %s osuser %s program %s sql_id %s ' \
+                        % (sidnr, serial, process, get_age_human_readable(int(last_call_el)), machine, osuser, program, sql_id)
+
+        if sessioncount == 0:
+            return 0, "%d long active sessions (%d, levels at %d/%d)" \
+                % (sessioncount, sessioncount, warn, crit), \
+                [("count", sessioncount, warn, crit)]
+        else:
+            if sessioncount >= crit:
                 state = 2
-            elif perc_used >= warn:
+            elif sessioncount >= warn:
                 state = 1
             else:
                 state = 0
 
-            mb = 1024*1024
-            return state, "%s out of %s used (%.1f%%, levels at %s%%/%s%%), %s reclaimable" \
-                % (get_bytes_human_readable(used_mb*mb), get_bytes_human_readable(size_mb*mb), \
-                   perc_used, warn, crit, get_bytes_human_readable(reclaimable_mb*mb)), \
-                   [('used', used_mb, warn_mb, crit_mb, 0, size_mb), ('reclaimable', reclaimable_mb)]
+            if sessioncount > 10:
+                return state, "%d long active sessions (%d, levels at %d/%d)" \
+                    % (sessioncount, sessioncount, warn, crit), \
+                    [("count", sessioncount, warn, crit)]
+            else:
+                return state, "%d long active sessions (%d, levels at %d/%d) %s" \
+                    % (sessioncount, sessioncount, warn, crit, longoutput), \
+                    [("count", sessioncount, warn, crit)]
 
     # In case of missing information we assume that the login into
     # the database has failed and we simply skip this check. It won't
@@ -71,12 +83,12 @@ def check_oracle_recovery_area(item, params, info):
     raise MKCounterWrapped(None, "Login into database failed")
 
 
-check_info['oracle_recovery_area'] = {
-    "check_function"          : check_oracle_recovery_area,
-    "inventory_function"      : inventory_oracle_recovery_area,
-    "service_description"     : "ORA %s Recovery Area",
+check_info['oracle_longactivesessions'] = {
+    "check_function"          : check_oracle_longactivesessions,
+    "inventory_function"      : inventory_oracle_longactivesessions,
+    "service_description"     : "ORA %s Long Active Sessions",
     "has_perfdata"            : True,
-    "default_levels_variable" : "oracle_recovery_area_defaults",
-    "group"                   : "oracle_recovery_area",
+    "default_levels_variable" : "oracle_longactivesessions_defaults",
+    "group"                   : "oracle_longactivesessions",
 }
 
