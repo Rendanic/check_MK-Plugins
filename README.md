@@ -42,6 +42,8 @@ as well but it is not tested on it.
 
 ## Version History
 
+# 1.2.3: Bugfix wrong order of values in default parameters in oracle_recovery_status
+# 1.2.2: Bugfix sqlplus.sh, wallet is usable again
 * 1.2.0: New oracle_locks, oracle_longactivesessions Bugfix oracle_job, oracle_recovery_status. More feautures in sqlplus.sh
 * 1.1.1: Bugfix oracle_instance & oracle_jobs, some perfometers
 * 1.1.0: New Recovery State for Standby Databases
