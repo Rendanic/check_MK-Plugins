@@ -101,6 +101,8 @@ then
 		# => Connect to Oracle won't work!
 		echo "ORA-99999 tnsping failed for "${ORACLE_SID}
 		exit 1
+        else
+            TNSALIAS=$ORACLE_SID
 	fi
 fi
 
@@ -109,6 +111,7 @@ if [ ! -f ${ORACLE_USERCONF} ] ; then
     # use EZCONNECT
     DBUSER=""
     DBPASSWORD=""
+    TNSALIAS=localhost/$ORACLE_SID
 else
     # connect as sysdba/sysoper?
     DBSYSCONNECT=$(echo ${dbconfline} | cut -d":" -f4)
@@ -122,6 +125,7 @@ else
         # => use the wallet with tnsnames.ora!
         DBUSER=""
         DBPASSWORD=""
+        TNSALIAS=localhost/$ORACLE_SID
     else
         # connect as sysdba/sysoper?
         DBSYSCONNECT=$(echo ${dbconfline} | cut -d":" -f4)
@@ -136,11 +140,12 @@ else
         if [ ${DBUSER} = '/' ] ; then
             DBUSER=""
             DBPASSWORD=""
+            TNSALIAS=localhost/$ORACLE_SID
         fi
     fi
 fi
 
-DBCONNECT=${DBUSER}/"${DBPASSWORD}@"${ORACLE_SID}${assysdbaconnect}
+DBCONNECT=${DBUSER}/"${DBPASSWORD}@"${TNSALIAS}${assysdbaconnect}
 
 SQLPLUS=${ORACLE_HOME}/bin/sqlplus
 if [ ! -x ${SQLPLUS} ]
