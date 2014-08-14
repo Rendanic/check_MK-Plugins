@@ -10,7 +10,7 @@ The original plugin needs an agent from 1.5.5i5 onwards. This version
 is a backport for Check_MK 1.2.2 or newer. It should run on older versions
 as well but it is not tested on it.
 
-## Requirements:
+## Requirements
 * Linux   RDBMS 9.2, 10.2, 11.2, XE 11.2
 * AIX 5.3 RDBMS 11.2
 * Check_MK Agent 1.2.2p2 or newer
@@ -36,7 +36,7 @@ as well but it is not tested on it.
 * Locks from v$lock
 * Long Active Sessions
 
-## known issues:
+## known issues
 * some pnp-templates are missing
 * man-pages are missing
 
@@ -54,6 +54,14 @@ as well but it is not tested on it.
 * 0.7.2: Bugfix sqlplus.sh for EZCONNECT
 * 0.7.1: 1st big release on github
 
-# GridInfrastructure
+# mk_oracle_crs
+This plugin is used to check an Oracle Grid-Infrastructure or Oracle Restart.
+
+## Requirements
+* Linux   Grid-Infrastructure or Oracle Restart 11.2
+* Check_MK Agent 1.2.2p2 or newer
+
+## Version History
+* 0.1.0: 1st release on github
 
 Thorsten Bruhns
