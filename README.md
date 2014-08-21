@@ -64,4 +64,9 @@ This plugin is used to check an Oracle Grid-Infrastructure or Oracle Restart.
 ## Version History
 * 0.1.0: 1st release on github
 
+# Local Checks
+## plugin_cksum
+
+Calculates a checksum with cksum over all plugins which are found in $MK_LIBDIR/plugins.
+The state is OK when plugins are found and UNKNOWN when the directory or cksum is missing.
 Thorsten Bruhns

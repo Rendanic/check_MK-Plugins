@@ -1,0 +1,27 @@
+#!/bin/bash
+#
+#
+#
+CKSUM=$(which cksum 2>/dev/null)
+if [ -x "$CKSUM" ] ; then
+    plugindir=$MK_LIBDIR/plugins
+    if [ -d "$plugindir" ]
+    then
+        cd "$plugindir"
+        for plugin in $(ls *)
+        do
+            out=$(cksum $plugin)" "$out
+        done
+
+        state=0
+    else
+        state=3
+        out="plugin directory not existing "$plugindir
+    fi
+else
+    state=3
+    out="cksum not found!"
+fi
+
+echo $state" plugins_cksum - "$out
+
