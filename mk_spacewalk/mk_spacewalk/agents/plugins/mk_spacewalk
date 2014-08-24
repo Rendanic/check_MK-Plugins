@@ -1,0 +1,23 @@
+#!/bin/bash
+
+
+set_env() {
+    username=check_mk
+    password=check_mk
+    server=localhost
+    SPACECMD="spacecmd -u $username -p $password -s $server --nohistory -q"
+}
+
+set_env
+
+echo "<<<spacewalk_systemlist>>>"
+$SPACECMD system_list
+
+echo "<<<report_duplicates>>>"
+$SPACECMD report_duplicates
+
+echo "<<<report_outofdatesystems>>>"
+$SPACECMD report_outofdatesystems
+
+echo "<<<report_errata>>>"
+$SPACECMD report_errata

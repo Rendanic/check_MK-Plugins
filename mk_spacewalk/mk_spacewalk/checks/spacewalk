@@ -1,0 +1,85 @@
+#!/usr/bin/python
+# -*- encoding: utf-8; py-indent-offset: 4 -*-
+# +------------------------------------------------------------------+
+# |             ____ _               _        __  __ _  __           |
+# |            / ___| |__   ___  ___| | __   |  \/  | |/ /           |
+# |           | |   | '_ \ / _ \/ __| |/ /   | |\/| | ' /            |
+# |           | |___| | | |  __/ (__|   <    | |  | | . \            |
+# |            \____|_| |_|\___|\___|_|\_\___|_|  |_|_|\_\           |
+# |                                                                  |
+# | Copyright Mathias Kettner 2013             mk@mathias-kettner.de |
+# +------------------------------------------------------------------+
+#
+# This file is part of Check_MK.
+# The official homepage is at http://mathias-kettner.de/check_mk.
+#
+# check_mk is free software;  you can redistribute it and/or modify it
+# under the  terms of the  GNU General Public License  as published by
+# the Free Software Foundation in version 2.  check_mk is  distributed
+# in the hope that it will be useful, but WITHOUT ANY WARRANTY;  with-
+# out even the implied warranty of  MERCHANTABILITY  or  FITNESS FOR A
+# PARTICULAR PURPOSE. See the  GNU General Public License for more de-
+# ails.  You should have  received  a copy of the  GNU  General Public
+# License along with GNU Make; see the file  COPYING.  If  not,  write
+# to the Free Software Foundation, Inc., 51 Franklin St,  Fifth Floor,
+# Boston, MA 02110-1301 USA.
+
+# <<<spacewalk_systems>>>
+# <Hostname>
+
+def inventory_spacewalk_systems(info):
+    inventory = []
+    for line in info:
+        inventory.append((' ', None))
+        return inventory
+
+def check_spacewalk_systems(item, params, info):
+
+
+    infotext = 'Managing %d systems ' % len(info)
+    return (0, infotext, [("systemcnt", len(info))])
+
+check_info["spacewalk_systemlist"] = {
+    'check_function':          check_spacewalk_systems,
+    'inventory_function':      inventory_spacewalk_systems,
+    'service_description':     'Spacewalk Systems',
+    'has_perfdata':            True,
+    'group':                   'spacewalk_systems',
+}
+
+
+def inventory_report_outofdatesystems(info):
+    inventory = []
+    for line in info:
+        inventory.append((' ', None))
+        return inventory
+
+def check_report_outofdatesystems(item, params, info):
+
+    count = 0
+    packagecnt = 0
+    infotext2 = ""
+
+    for line in info:
+        if line[0] in ('System', '------------------------------'):
+            continue
+        count += 1
+        infotext2 += ', %s %d updates' % (line[0], saveint(line[1]))
+
+        packagecnt += int(line[1])
+
+    infotext = '%d systems have %d outstanding updates' % (count, packagecnt)
+    if count <= 30:
+        infotext += infotext2
+
+    return (0, infotext, [("systemcnt", count), ("packagecount", packagecnt)])
+
+check_info["report_outofdatesystems"] = {
+    'check_function':          check_report_outofdatesystems,
+    'inventory_function':      inventory_report_outofdatesystems,
+    'service_description':     'Spacewalk Outdated Systems',
+    'has_perfdata':            True,
+    'group':                   'spacewalk_report_outofdatesystems',
+}
+
+
