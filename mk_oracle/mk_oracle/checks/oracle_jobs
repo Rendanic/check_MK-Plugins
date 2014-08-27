@@ -7,7 +7,7 @@
 # |           | |___| | | |  __/ (__|   <    | |  | | . \            |
 # |            \____|_| |_|\___|\___|_|\_\___|_|  |_|_|\_\           |
 # |                                                                  |
-# | Copyright Mathias Kettner 2013             mk@mathias-kettner.de |
+# | Copyright Mathias Kettner 2014             mk@mathias-kettner.de |
 # +------------------------------------------------------------------+
 #
 # This file is part of Check_MK.
@@ -36,65 +36,115 @@
 # IODBSZ1 EXFSYS RLM$SCHDNEGACTION SCHEDULED 0 18954 TRUE 23.04.13 14:51:57,000000 +02:00 - SUCCEEDED
 # IODBSZ1 EXFSYS RLM$EVTCLEANUP SCHEDULED 0 18202 TRUE 23.04.13 13:41:48,200000 +01:00 - SUCCEEDED
 
+
+factory_settings["oracle_jobs_defaults"] = {
+    "disabled": True,
+    'run_duration': (0, 0),
+}
+
 def inventory_oracle_jobs(info):
-    inventory = []
-    for line in info:
-        if line[6] == "TRUE": # only add enabled jobs
-            inventory.append(("%s.%s" % (line[0], line[2]), {}))
-    return inventory
+    return [ ( ("%s.%s.%s" % (line[0], line[1], line[2])), {} ) for line in info ]
 
 def check_oracle_jobs(item, params, info):
     try:
-        sid, jobname = item.split('.')
+        if item.count('.') == 2:
+            sid, jobowner, jobname = item.split('.')
+        if item.count('.') == 1:
+            # old agent format
+            sid, jobname = item.split('.')
+            jobowner = ''
     except ValueError:
-        return (3, 'Invalid check item given (must be <SID>.<job_name>)')
+        return (3, 'Invalid check item given (must be<SID>.<job_owner>.<job_name> or  <SID>.<job_name>)')
 
-    data = None
+    datafound = False
     for line in info:
-        if line[0] == sid and line[2] == jobname:
-            data = line
+
+        servicefound = False
+
+        if line[0] == sid:
+            datafound = True
+
+        # 2nd or is for compatibility against old agent due to missing jobowner in service
+        if   (line[0] == sid and line[1] == jobowner and line[2] == jobname) \
+          or (line[0] == sid and line[2] == jobname):
+
+            servicefound = True
+            paramdisabled = params["disabled"]
+
+            if len(line) == 10:
+                # new agent output with '|' separator
+                sid, jobowner, jobname, jobstate, jobruntime, jobruncount, \
+                jobenabled, jobnextrun, jobschedule, jobstatus = line
+
+            else:
+                # old agent format
+                # the extraction of data is complicated due to missing field separator
+                jobname = line[2]
+                jobstate = line[3]
+                jobruntime = line[4]
+                jobenabled = line[6]
+                jobnextrun = " ".join(line[7:-3])
+                jobschedule = line[-2]
+                jobstatus = line[-1]
+
             break
-    if not data:
+
+    if not datafound:
         # In case of missing information we assume that the login into
         # the database has failed and we simply skip this check. It won't
         # switch to UNKNOWN, but will get stale.
-        raise MKCounterWrapped(None, "Login into database failed or job not existing")
+        raise MKCounterWrapped(None, "Login not possible for check %s" % item)
+
+    if not servicefound:
+        return (2, 'Job is missing')
 
     state = 0
     output = []
     perfdata = []
 
-    job_state = line[3]
 
-    txt = "Job-State: %s" % job_state
-    if job_state == "BROKEN":
+    txt = "Job-State: %s" % jobstate
+    if jobstate == "BROKEN":
         txt += " (!!)"
         state = max(state, 2)
     output.append(txt)
 
-    txt = "Enabled: %s" % (line[6] == "TRUE" and "Yes" or "No")
-    if line[6] != "TRUE" and job_state != 'RUNNING':
-        txt += " (!)"
-        state = max(state, 1)
+    txt = "Enabled: %s" % (jobenabled == "TRUE" and "Yes" or "No")
+    if jobenabled != "TRUE" and jobstate != 'RUNNING':
+        if paramdisabled:
+            txt += ' ignored'
+        else:
+            txt += " (!)"
+            state = max(state, 1)
     output.append(txt)
 
     # bugfix for an error in mk_oracle agent with missing round over last_duration
-    last_duration = int(line[4].replace('.',',').split(',',1)[0])
-    output.append("Last Duration: %s" % get_age_human_readable(last_duration))
+    last_duration = int(jobruntime.replace('.',',').split(',',1)[0])
+
+    warn, crit = params["run_duration"]
+
+    if last_duration >= crit and crit > 0:
+        output.append("Last Duration: %s (!!) levels at (%ds/%ds)" % (get_age_human_readable(last_duration), warn, crit))
+        state = max(state, 2)
+    elif last_duration > warn and warn > 0:
+        output.append("Last Duration: %s (!) levels at (%ds/%ds)" % (get_age_human_readable(last_duration), warn, crit))
+        state = max(state, 1)
+    else:
+        output.append("Last Duration: %s levels at (%ds/%ds)" % (get_age_human_readable(last_duration), warn, crit))
+
     perfdata.append(("duration", last_duration))
 
     # 01.05.13 01:01:01,000000 +01:00
-    next_run = " ".join(line[7:-3])
-    if next_run.startswith("01.01.70 00:00:00"):
-        if line[-2] == "-":
-            next_run = "not scheduled (!)"
+    if jobnextrun.startswith("01.01.70 00:00:00"):
+        if jobschedule == "-":
+            jobnextrun = "not scheduled (!)"
             state = max(state, 1)
         else:
-            next_run = line[-2]
-    output.append("Next Run: %s" % next_run)
+            jobnextrun = jobschedule
+    output.append("Next Run: %s" % jobnextrun)
 
-    txt = "Last Run Status: %s" % (line[-1])
-    if line[-1] != "SUCCEEDED":
+    txt = "Last Run Status: %s" % (jobstatus)
+    if jobstatus != "SUCCEEDED":
         txt += " (!!)"
         state = max(state, 2)
     output.append(txt)
@@ -103,7 +153,9 @@ def check_oracle_jobs(item, params, info):
 
 check_info['oracle_jobs'] = {
     "service_description"     : "ORA %s Job",
+    "group"                   : "oracle_jobs",
     "check_function"          : check_oracle_jobs,
     "inventory_function"      : inventory_oracle_jobs,
     "has_perfdata"            : True,
+    "default_levels_variable" : "oracle_jobs_defaults",
 }

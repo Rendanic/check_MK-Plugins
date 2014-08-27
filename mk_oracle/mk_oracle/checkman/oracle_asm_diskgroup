@@ -1,0 +1,53 @@
+title: ORACLE ASM Disk Groups
+agents: linux, solaris, hpux
+catalog: app/oracle
+license: GPL
+distribution: check_mk
+description:
+ Checks usage of ORACLE ASM Disk Groups and Offline Disk.
+
+ Make sure you have installed the mk_oracle or mk_oracle_asm agent 
+ plugin on the monitored machines.
+
+ The check goes 'stale' when no data is found for the Disk Group.
+ If a Disk Group is not mounted the check goes in stale state.
+ There is no way to get more details for a broken Disk Group with SQL
+ so you need to look in the alert.log of the ASM-Instance.
+
+ Please monitor the service for the diskgroup in Grid-Infrastructure.
+
+ See also check manpage for df. All the configuration from there can
+ also be used for ORACLE ASM Disk Groups.
+
+ An additional option is availible:
+ Normaly the check calculates the free space from free_mb column.
+ The parameter req_mirror_free could be used to change this to
+ Req_mir_free_MB for NORMAL or HIGH redundancy Disk Groups.
+
+ The old parameter filesystem_default_levels is replaced with
+ asm_diskgroup_default_levels. This changed is required to add the
+ additional parameter req_mir_free. All other parameters are from
+ filesystem_default_levels
+
+item:
+ The name of the disk group as delivered by asmcmd.
+
+examples:
+ # Set default levels for all filesystems (including ORACLE ASM Disk Groups)
+ # to 90/95
+ asm_diskgroup_default_levels = (90, 95)
+
+ # more examples in check manpage for df
+
+perfdata:
+ see check manpage for df
+
+inventory:
+ Creates one check for every disk group in the agent's output.
+
+[parameters]
+parameters(dict): see check manpage for df and comments above
+
+[configuration]
+asm_diskgroup_default_levels: see check manpage for df and comments above
+

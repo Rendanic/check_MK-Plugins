@@ -1,0 +1,129 @@
+#!/usr/bin/python
+# -*- encoding: utf-8; py-indent-offset: 4 -*-
+# +------------------------------------------------------------------+
+# |             ____ _               _        __  __ _  __           |
+# |            / ___| |__   ___  ___| | __   |  \/  | |/ /           |
+# |           | |   | '_ \ / _ \/ __| |/ /   | |\/| | ' /            |
+# |           | |___| | | |  __/ (__|   <    | |  | | . \            |
+# |            \____|_| |_|\___|\___|_|\_\___|_|  |_|_|\_\           |
+# |                                                                  |
+# | Copyright Mathias Kettner 2013             mk@mathias-kettner.de |
+# +------------------------------------------------------------------+
+#
+# This file is part of Check_MK.
+# The official homepage is at http://mathias-kettner.de/check_mk.
+#
+# check_mk is free software;  you can redistribute it and/or modify it
+# under the  terms of the  GNU General Public License  as published by
+# the Free Software Foundation in version 2.  check_mk is  distributed
+# in the hope that it will be useful, but WITHOUT ANY WARRANTY;  with-
+# out even the implied warranty of  MERCHANTABILITY  or  FITNESS FOR A
+# PARTICULAR PURPOSE. See the  GNU General Public License for more de-
+# ails.  You should have  received  a copy of the  GNU  General Public
+# License along with GNU Make; see the file  COPYING.  If  not,  write
+# to the Free Software Foundation, Inc., 51 Franklin St,  Fifth Floor,
+# Boston, MA 02110-1301 USA.
+
+# In cooperation with Thorsten Bruhns from OPITZ Consulting
+
+#<<oracle_performance:sep(124)>>>
+#TUX12C|DB CPU|64
+#TUX12C|DB time|86
+
+def inventory_oracle_performance(info):
+    return [ (line[0], {}) for line in info ]
+
+def check_oracle_performance(item, params, info):
+    def loc_get_perfdata(this_time, stat_type, stat_name, value, wrapped, perfdata):
+        rate = 0
+        try:
+            timed, rate = get_counter("oracle_perf.%s.%s.%s" % \
+                           (sid, stat_type, stat_name), this_time, saveint(value))
+            perfdata.append((stat_name.replace(' ', '_'), round(rate, 3)))
+        except MKCounterWrapped:
+            wrapped = True
+        return (rate, perfdata, wrapped)
+
+    datafound = False
+    out = ''
+    perfdata = []
+    this_time = int(time.time())
+    pinssum = 0
+    pinhitssum = 0
+
+    wrapped = False
+
+    for line in info:
+        if line[0] == item:
+            # buffer_pool_statistics
+            if line[1] == 'buffer_pool_statistics' and len(line) == 10:
+                sid, stat_type, name, db_block_gets, db_block_change, consistent_gets, \
+                physical_reads, physical_writesi, free_buffer_wait, buffer_busy_wait = line
+
+                if name <> 'DEFAULT':
+                    continue
+                rate, perfdata, wrapped = loc_get_perfdata(this_time, stat_type, \
+                     'db_block_gets', db_block_gets, wrapped, perfdata)
+                rate, perfdata, wrapped = loc_get_perfdata(this_time, stat_type, \
+                     'db_block_change', db_block_change, wrapped, perfdata)
+                rate, perfdata, wrapped = loc_get_perfdata(this_time, stat_type, \
+                     'consistent_gets', consistent_gets, wrapped, perfdata)
+                rate, perfdata, wrapped = loc_get_perfdata(this_time, stat_type, \
+                     'physical_reads', physical_reads, wrapped, perfdata)
+                rate, perfdata, wrapped = loc_get_perfdata(this_time, stat_type, \
+                     'physical_writesi', physical_writesi, wrapped, perfdata)
+                rate, perfdata, wrapped = loc_get_perfdata(this_time, stat_type, \
+                     'free_buffer_wait', free_buffer_wait, wrapped, perfdata)
+                rate, perfdata, wrapped = loc_get_perfdata(this_time, stat_type, \
+                     'buffer_busy_wait', buffer_busy_wait, wrapped, perfdata)
+
+                hit_ratio = round((1 - (float(physical_reads) / \
+                             ( int(db_block_gets) + int(consistent_gets)))) * 100, 2)
+                perfdata.append(('buffer_hit_ratio', hit_ratio))
+                out += 'Buffer Cache Hit Ratio %.0f%% ' % hit_ratio
+
+            # librarycache statistics
+            if line[1] == 'librarycache' and len(line) == 9:
+                sid, stat_name, namespace, gets, gethits, pins, pinhits, reloads, \
+                     invalidations = line
+                pinssum += saveint(pins)
+                pinhitssum += saveint(pinhits)
+
+            # sys_time_model
+            if line[1] == 'sys_time_model' and len(line) == 4:
+                datafound = True
+                sid, stat_type, stat_name, value = line
+                value = int(value)
+
+                rate, perfdata, wrapped = loc_get_perfdata(this_time, stat_type, stat_name, value, wrapped, perfdata)
+                out += '%s %.2f/s ' % (stat_name, rate)
+
+    if pinssum > 0:
+        pinssumrate, perfdata, wrapped = loc_get_perfdata(this_time, 'librarycache', \
+             'pinssum', pinssum, wrapped, perfdata)
+
+        pinhitssumrate, perfdata, wrapped = loc_get_perfdata(this_time, 'librarycache', \
+             'pinhitssum', pinssum, wrapped, perfdata)
+
+        pinratio = float(pinhitssum) / pinssum * 100
+
+        out += 'Library Cache Hit Ratio %.0f%% ' % pinratio
+        perfdata.append(('library_cache_hit_ratio', round(pinratio, 2)))
+
+    if wrapped:
+        raise MKCounterWrapped(None, "Counter wrap")
+
+    if datafound:
+        return (0, out, perfdata)
+
+    # In case of missing information we assume that the clusterware
+    # is not running and we simple skip the result
+    raise MKCounterWrapped(None, "No data found. Maybe the instance %s is not running" %item)
+
+check_info['oracle_performance'] = {
+    "check_function"          : check_oracle_performance,
+    "inventory_function"      : inventory_oracle_performance,
+    "service_description"     : "ORA %s Perf-Data",
+    "has_perfdata"            : True,
+    "group"                   : "oracle_performance",
+}

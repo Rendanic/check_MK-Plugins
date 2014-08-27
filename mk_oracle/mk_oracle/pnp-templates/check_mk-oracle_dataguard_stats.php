@@ -23,16 +23,15 @@
 # to the Free Software Foundation, Inc., 51 Franklin St,  Fifth Floor,
 # Boston, MA 02110-1301 USA.
 
-$title = str_replace("_", " ", $servicedesc);
-$opt[1] = "--vertical-label 'processes' -l0 -u $CRIT[1] --title \"$title\" ";
+$servicename_parts = explode("_", $servicedesc);
+$oracle_sid = $servicename_parts[1];
 
-$def[1] = "DEF:processes=$RRDFILE[1]:$DS[1]:MAX ";
-$def[1] .= "AREA:processes#00ff48: ";
-$def[1] .= "LINE:processes#008f38: ";
-$def[1] .= "GPRINT:processes:LAST:\"last\: %3.0lf\" ";
-$def[1] .= "GPRINT:processes:AVERAGE:\"avg\: %3.0lf\" ";
-$def[1] .= "GPRINT:processes:MAX:\"max\: %3.0lf\" ";
-$def[1] .= "HRULE:$WARN[1]#ffcf00:\"Warning at $WARN[1]\" ";
-$def[1] .= "HRULE:$CRIT[1]#ff0000:\"Critical at $CRIT[1]\" ";
+$opt[1] = "--vertical-label 'apply Lag (s)' -l0 --title \"Dataguard Stats of $oracle_sid\" ";
 
+$def[1] = "DEF:sec=$RRDFILE[1]:$DS[1]:MAX ";
+$def[1] .= "CDEF:apply_lag=sec,1,/ ";
+$def[1] .= "AREA:apply_lag#80f000:\"Apply Lag (s)\" ";
+$def[1] .= "LINE:apply_lag#408000 ";
+$def[1] .= "GPRINT:apply_lag:LAST:\"%7.2lf %s LAST\" ";
+$def[1] .= "GPRINT:apply_lag:MAX:\"%7.2lf %s MAX\" ";
 ?>

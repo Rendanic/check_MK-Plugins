@@ -28,6 +28,25 @@
 # and Mathias Kettner. Thorsten is responsible for the ORACLE
 # stuff, Mathias for the shell hacking...
 
+ORACLE_USERCONF="${MK_CONFDIR}"/mk_oracle_dbuser.conf
+
+DEBUG=0
+DEBUGCONNECT=0
+while test $# -gt 0
+do
+    if [ "${1}" = '-d' ] ; then
+        set -xv ; DEBUG=1
+    elif [ "${1}" = '-t' ] ; then
+        DEBUGCONNECT=1
+    fi
+    shift
+done
+
+if [ ! "$MK_CONFDIR" ] ; then
+    echo "MK_CONFDIR not set!" >&2
+    exit 1
+fi
+
 #   .--Config--------------------------------------------------------------.
 #   |                     ____             __ _                            |
 #   |                    / ___|___  _ __  / _(_) __ _                      |
@@ -40,7 +59,7 @@
 #   '----------------------------------------------------------------------'
 
 # Sections that run fast and do no caching
-SYNC_SECTIONS="instance sessions logswitches undostat recovery_area processes recovery_status longactivesessions"
+SYNC_SECTIONS="instance sessions logswitches undostat recovery_area processes recovery_status longactivesessions dataguard_stats performance"
 
 # Sections that are run in the background and at a larger interval.
 # Note: sections not listed in SYNC_SECTIONS or ASYNC_SECTIONS will not be
@@ -97,6 +116,40 @@ fi
 #   | them to stdout. All queries output the database name or the instane  |
 #   | name as first column.                                                |
 #   '----------------------------------------------------------------------'
+
+sql_performance()
+{
+    echo 'PROMPT <<<oracle_performance:sep(124)>>>'
+    echo "select upper(i.INSTANCE_NAME)
+                 ||'|'|| 'sys_time_model'
+                 ||'|'|| S.STAT_NAME
+                 ||'|'|| Round(s.value/1000000)
+          from v\$instance i,
+               v\$sys_time_model s
+          where s.stat_name in('DB time', 'DB CPU')
+          order by s.stat_name;
+          select upper(i.INSTANCE_NAME)
+                 ||'|'|| 'buffer_pool_statistics'
+                 ||'|'|| b.name
+                 ||'|'|| b.db_block_gets
+                 ||'|'|| b.db_block_change
+                 ||'|'|| b.consistent_gets
+                 ||'|'|| b.physical_reads
+                 ||'|'|| b.physical_writes
+                 ||'|'|| b.FREE_BUFFER_WAIT
+                 ||'|'|| b.BUFFER_BUSY_WAIT
+          from v\$instance i, V\$BUFFER_POOL_STATISTICS b;
+          select upper(i.INSTANCE_NAME)
+                 ||'|'|| 'librarycache'
+                 ||'|'|| b.namespace
+                 ||'|'|| b.gets
+                 ||'|'|| b.gethits
+                 ||'|'|| b.pins
+                 ||'|'|| b.pinhits
+                 ||'|'|| b.reloads
+                 ||'|'|| b.invalidations
+          from v\$instance i, V\$librarycache b;"
+}
 
 sql_tablespaces()
 {
@@ -156,6 +209,23 @@ sql_92_tablespaces()
                 f.autoextensible, f.blocks, f.maxblocks, f.user_blocks, f.increment_by,
                 'TEMP', t.block_size, t.status);
           "
+}
+
+sql_dataguard_stats()
+{
+    echo 'PROMPT <<<oracle_dataguard_stats:sep(124)>>>'
+    echo "SELECT upper(d.NAME)
+                 ||'|'|| upper(d.DB_UNIQUE_NAME)
+                 ||'|'|| d.DATABASE_ROLE
+                 ||'|'|| ds.name
+                 ||'|'|| ds.value
+          FROM  v\$database d
+          JOIN  v\$parameter vp on 1=1
+          left outer join V\$dataguard_stats ds on 1=1
+          WHERE vp.name = 'log_archive_config'
+          AND   vp.value is not null
+          ORDER BY 1;
+         "
 }
 
 sql_recovery_status()
@@ -274,17 +344,17 @@ sql_resumable()
 
 sql_jobs()
 {
-    echo 'PROMPT <<<oracle_jobs>>>'
+    echo 'PROMPT <<<oracle_jobs:sep(124)>>>'
     echo "SELECT upper(d.NAME)
-                 ||' '|| j.OWNER
-                 ||' '|| j.JOB_NAME
-                 ||' '|| j.STATE
-                 ||' '|| ROUND((TRUNC(sysdate) + j.LAST_RUN_DURATION - TRUNC(sysdate)) * 86400)
-                 ||' '|| j.RUN_COUNT
-                 ||' '|| j.ENABLED
-                 ||' '|| NVL(j.NEXT_RUN_DATE, to_date('1970-01-01', 'YYYY-mm-dd'))
-                 ||' '|| NVL(j.SCHEDULE_NAME, '-')
-                 ||' '|| d.STATUS
+                 ||'|'|| j.OWNER
+                 ||'|'|| j.JOB_NAME
+                 ||'|'|| j.STATE
+                 ||'|'|| ROUND((TRUNC(sysdate) + j.LAST_RUN_DURATION - TRUNC(sysdate)) * 86400)
+                 ||'|'|| j.RUN_COUNT
+                 ||'|'|| j.ENABLED
+                 ||'|'|| NVL(j.NEXT_RUN_DATE, to_date('1970-01-01', 'YYYY-mm-dd'))
+                 ||'|'|| NVL(j.SCHEDULE_NAME, '-')
+                 ||'|'|| d.STATUS
           FROM dba_scheduler_jobs j, dba_scheduler_job_run_details d, v\$database d
           WHERE d.owner=j.OWNER AND d.JOB_NAME=j.JOB_NAME
             AND d.LOG_ID=(SELECT max(LOG_ID) FROM dba_scheduler_job_run_details dd
@@ -437,6 +507,8 @@ sql_longactivesessions()
           from v\$session s, v\$instance i
           where s.status = 'ACTIVE'
           and type != 'BACKGROUND'
+          and s.username is not null
+          and s.username not in('PUBLIC')
           and s.last_call_et > 60*60
           union all
           select upper(i.instance_name)
@@ -463,6 +535,39 @@ sql_112_asm_diskgroup()
                  || ' ' || name || '/'
             from v\$asm_diskgroup;
          "
+}
+
+function set_oraenv () {
+    ORACLE_SID=${1}
+    ORACLE_USERCONF=${MK_CONFDIR}/mk_oracle_dbuser.conf
+
+    test -f /etc/oratab && ORATAB=/etc/oratab
+    test -f /var/opt/oracle/oratab && ORATAB=/var/opt/oracle/oratab
+    test -f ${ORATAB:-""} || echo "ORA-99999 oratab not found"
+    test -f ${ORATAB:-""} || exit 1
+
+    ORACLE_HOME=$(cat ${ORATAB} | grep "^"${ORACLE_SID}":" | cut -d":" -f2)
+    if [ -z $ORACLE_HOME ] ; then
+        # cut last number from SID for Oracle RAC to find entry in oratab
+        ORACLE_SID_SHORT=$(echo $ORACLE_SID | sed "s/[0-9]$//")
+        ORACLE_HOME=$(cat ${ORATAB} | grep "^"${ORACLE_SID_SHORT}":" | cut -d":" -f2)
+    fi
+
+    if [ ! -d ${ORACLE_HOME:-"not_found"} ] ; then
+        echo "ORA-99999 ORACLE_HOME for ORACLE_SID="$ORACLE_SID" not found or not existing!"
+        exit 1
+    fi
+
+    TNS_ADMIN=${TNS_ADMIN:-$MK_CONFDIR}
+    test -f ${TNS_ADMIN}/sqlnet.ora || ( echo "ORA-99998 Couldn't find "${TNS_ADMIN}/sqlnet.ora ; exit 1)
+
+    SQLPLUS=${ORACLE_HOME}/bin/sqlplus
+    export ORACLE_HOME TNS_ADMIN
+}
+
+function get_oraversion () {
+    set_oraenv ${1}
+    ORACLE_VERSION=$($SQLPLUS -V | grep ^SQL | cut -d" " -f3 | cut -d"." -f-2)
 }
 
 # Runs a command asynchronous by use of a cache file
@@ -515,12 +620,76 @@ function run_cached () {
 #   | Helper functions                                                     |
 #   '----------------------------------------------------------------------'
 
+function sqlplus_internal() {
+    loc_stdin=$(cat)
+    set_oraenv $SID
+
+    if [ -f ${TNS_ADMIN}/tnsnames.ora ] ; then
+        if "${ORACLE_HOME}"/bin/tnsping "${ORACLE_SID}" >/dev/null 2>&1  ; then
+            TNSALIAS=$ORACLE_SID
+        else
+            echo "ORA-99999 tnsping failed for "${ORACLE_SID}
+            return 2
+        fi
+    fi
+
+    DBUSER=""
+    DBPASSWORD=""
+    if [ ! -f ${ORACLE_USERCONF} ] ; then
+        TNSALIAS=localhost/$ORACLE_SID
+    else
+        dbconfline=$(cat ${ORACLE_USERCONF} | grep "^"${ORACLE_SID}":")
+        if [ ! ${dbconfline} ] ; then
+            # no configuration found  => use the wallet with tnsnames.ora!
+            TNSALIAS=localhost/$ORACLE_SID
+        else
+            DBSYSCONNECT=$(echo ${dbconfline} | cut -d":" -f4)
+            if [ ${DBSYSCONNECT} ] ; then
+                assysdbaconnect=" as "${DBSYSCONNECT}
+            fi
+
+            DBUSER=$(echo ${dbconfline} | cut -d":" -f2)
+            DBPASSWORD=$(echo ${dbconfline} | cut -d":" -f3)
+            # DBUSER = '/'? => ignore DBPASSWORD and use the wallet with tnsnames.ora
+
+            if [ ${DBUSER} = '/' ] ; then
+                # connect with / and wallet
+                DBUSER=""
+                DBPASSWORD=""
+                TNSALIAS=localhost/$ORACLE_SID
+            fi
+        fi
+    fi
+
+    DBCONNECT=${DBUSER}/"${DBPASSWORD}@"${TNSALIAS}${assysdbaconnect}
+
+    SQLPLUS=${ORACLE_HOME}/bin/sqlplus
+    if [ ! -x ${SQLPLUS} ] ; then
+        echo "sqlplus not found or ORACLE_HOME wrong! "
+        echo "SQLPLUS="${SQLPLUS}
+        return 1
+    fi
+
+    echo "$loc_stdin" | ${SQLPLUS} -L -s ${DBCONNECT}
+    if [ $? -ne 0 ] ; then
+        if [ $DEBUGCONNECT = 1 ] ; then
+            echo "Logindetails: ${DBCONNECT}" >&2
+        fi
+        return 1
+    fi
+}
+
 # Helper function that calls an SQL statement with a clean output
 # Usage: echo "..." | sqlplus SID
 function sqlplus ()
 {
     local SID=$1
-    if OUTPUT=$({ echo 'set pages 0 trimspool on feedback off lines 8000' ; echo 'whenever sqlerror exit 1'; cat ; } | $MK_CONFDIR/sqlplus.sh $SID)
+    loc_stdin=$(cat)
+
+    SQLPLUS="$MK_CONFDIR"/sqlplus.sh
+    test -f "$SQLPLUS" || SQLPLUS=sqlplus_internal
+
+    if OUTPUT=$({ echo 'set pages 0 trimspool on feedback off lines 8000' ; echo 'whenever sqlerror exit 1'; echo "$loc_stdin" ; } | "$SQLPLUS" $SID)
     then
         echo "$OUTPUT"
     else
@@ -575,7 +744,9 @@ function do_async_checks ()
 # Make sure that the new shell that is being run by run_cached inherits
 # our functions
 export -f sqlplus
+export -f sqlplus_internal
 export -f do_async_checks
+export -f set_oraenv
 
 #.
 #   .--Main----------------------------------------------------------------.
@@ -652,18 +823,30 @@ do
     # Do sync checks
     EXCLUDED=$(eval 'echo $EXCLUDE'"_$SID")
     SECTIONS=$(remove_excluded_sections "$SYNC_SECTIONS" "$EXCLUDED")
-    do_sync_checks $SID "$SECTIONS"
+
+    if [ $DEBUGCONNECT = 0 ] ; then
+        do_sync_checks $SID "$SECTIONS"
+    else
+        get_oraversion $SID
+        echo "-----------------------------------------------"
+        echo "Logincheck to Instance: "$SID"  Version: "$ORACLE_VERSION
+        echo "select 'Login ok User: ' || user from dual;" | sqlplus $SID
+        echo "SYNC_SECTIONS=$SECTIONS"
+    fi
 
     # Do async checks
     SECTIONS=$(remove_excluded_sections "$ASYNC_SECTIONS" "$EXCLUDED")
     ASYNC_SQL=$(for section in $SECTIONS ; do eval "sql_$section" ; done)
     export ASYNC_SQL
-    run_cached oracle_$SID $CACHE_MAXAGE do_async_checks $SID
+
+    if [ $DEBUGCONNECT = 0 ] ; then
+        run_cached oracle_$SID $CACHE_MAXAGE do_async_checks $SID
+    else
+        echo "ASYNC_SECTIONS=$SECTIONS"
+    fi
 
     if [ ${SID:0:1} = '+' ] ; then
         ASYNC_SECTIONS=${ASYNC_SECTIONS_OLD}
         SYNC_SECTIONS=${SYNC_SECTIONS_OLD}
     fi
 done
-
-

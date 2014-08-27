@@ -191,8 +191,67 @@ register_check_parameters(
     "dict",
 )
 
-# Create rules for check parameters of inventorized checks
-#for subgroup, checkgroup, title, valuespec, itemspec, matchtype in checkgroups:
-#    register_check_parameters(subgroup, checkgroup, title, valuespec, itemspec, matchtype)
+register_check_parameters(
+    subgroup_applications,
+    "oracle_dataguard_stats",
+    _("Oracle Data-Guard Stats"),
+    Dictionary(
+        help = _("The Data-Guard are availible in Oracle Enterprise Edition with enabled Data-Guard. "
+                 "The init.ora Parameter dg_broker_start must be TRUE for this check. The apply and "
+                 "transport lag could be configured with this rule."),
+        elements = [
+            ( "apply_lag",
+              Tuple(
+                  title = _("Apply Lag"),
+                  help = _( "The limit for the apply lag in v$dataguard_stats."),
+                  elements = [
+                      Age(title = _("Warning if above"), default_value = 10800),
+                      Age(title = _("Critical if above"), default_value = 21600)])),
+            ( "transport_lag",
+              Tuple(
+                  title = _("Transport Lag"),
+                  help = _( "The limit for the transport lag in v$dataguard_stats."),
+                  elements = [
+                      Age(title = _("Warning if above"), default_value = 10800),
+                      Age(title = _("Critical if above"), default_value = 21600)])),
+                   ]),
+    TextAscii(
+        title = _("Database SID"),
+        size = 12,
+        allow_empty = False),
+    "dict",
+)
 
+register_check_parameters(
+    subgroup_applications,
+    "oracle_jobs",
+    _("Oracle Scheduler Jobs"),
+    Dictionary(
+        help = _("A Scheduler Job is an object in an Oracle Database which could be "
+                 "compared to a cron job on unix. "
+                 "This rule allows you to define checks on the size of tablespaces."),
+        elements = [
+            ( "run_duration",
+              Tuple(
+                  title = _("Maimum run duration for last execution"),
+                  help = _("Here you can define an upper limit for the run duration of "
+                           "last execution of the job."),
+                     elements = [
+                          Age(title = _("warning if higher then"), default_value = 0),
+                          Age(title = _("critical if higher then"), default_value = 0),
+                     ])),
+            ( "disabled",
+                Checkbox(
+                  title = _("Disabled"),
+                  label = _("Disabled is allowed"),
+                  help = "Ignore the enable/disable state of the job.")),
+                   ]),
+    TextAscii(
+        title = _("Scheduler-Job Name"),
+        help = _("Here you can set explicit Scheduler-Jobs  by defining them via SID, Job-Owner "
+                 "and Job-Name, separated by a dot, for example <b>TUX12C.SYS.PURGE_LOG</b>"),
+        regex = '.+\..+',
+        allow_empty = False),
+    None
+)
 
