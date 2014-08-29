@@ -28,6 +28,14 @@
 # and Mathias Kettner. Thorsten is responsible for the ORACLE
 # stuff, Mathias for the shell hacking...
 
+# Example for ${MK_CONFDIR}/tnsnames.ora
+# <ORACLE_SID>:<DBUSER>:<PASSWORD>:<SYSDBA/SYSASM>:<HOSTNAME>:<Port>
+# SYSDBA or SYSASM is optional but needed for a mounted instance
+# HOSTNAME is optional - Default is localhost
+# PORT is optional - Default is 1521
+
+# tux2:dbsnmp:dbsnmp:sysdba
+
 ORACLE_USERCONF="${MK_CONFDIR}"/mk_oracle_dbuser.conf
 
 DEBUG=0
@@ -627,21 +635,18 @@ function sqlplus_internal() {
     if [ -f ${TNS_ADMIN}/tnsnames.ora ] ; then
         if "${ORACLE_HOME}"/bin/tnsping "${ORACLE_SID}" >/dev/null 2>&1  ; then
             TNSALIAS=$ORACLE_SID
-        else
-            echo "ORA-99999 tnsping failed for "${ORACLE_SID}
-            return 2
         fi
     fi
 
     DBUSER=""
     DBPASSWORD=""
     if [ ! -f ${ORACLE_USERCONF} ] ; then
-        TNSALIAS=localhost/$ORACLE_SID
+        TNSALIAS=${TNSALIAS:-"(DESCRIPTION=(ADDRESS=(PROTOCOL=TCP)(HOST=localhost)(PORT=1521))(CONNECT_DATA=(SID=${ORACLE_SID})))"}
     else
         dbconfline=$(cat ${ORACLE_USERCONF} | grep "^"${ORACLE_SID}":")
         if [ ! ${dbconfline} ] ; then
             # no configuration found  => use the wallet with tnsnames.ora!
-            TNSALIAS=localhost/$ORACLE_SID
+            TNSALIAS=${TNSALIAS:-"(DESCRIPTION=(ADDRESS=(PROTOCOL=TCP)(HOST=localhost)(PORT=1521))(CONNECT_DATA=(SID=${ORACLE_SID})))"}
         else
             DBSYSCONNECT=$(echo ${dbconfline} | cut -d":" -f4)
             if [ ${DBSYSCONNECT} ] ; then
@@ -650,18 +655,21 @@ function sqlplus_internal() {
 
             DBUSER=$(echo ${dbconfline} | cut -d":" -f2)
             DBPASSWORD=$(echo ${dbconfline} | cut -d":" -f3)
-            # DBUSER = '/'? => ignore DBPASSWORD and use the wallet with tnsnames.ora
+            DBHOST=$(echo ${dbconfline} | cut -d":" -f5)
+            DBPORT=$(echo ${dbconfline} | cut -d":" -f6)
+            TNSALIAS=${TNSALIAS:-"(DESCRIPTION=(ADDRESS=(PROTOCOL=TCP)(HOST=${DBHOST:-"localhost"})(PORT=${DBPORT:-1521}))(CONNECT_DATA=(SID=${ORACLE_SID})))"}
 
+
+            # DBUSER = '/'? => ignore DBPASSWORD and use the wallet with tnsnames.ora
             if [ ${DBUSER} = '/' ] ; then
                 # connect with / and wallet
                 DBUSER=""
                 DBPASSWORD=""
-                TNSALIAS=localhost/$ORACLE_SID
             fi
         fi
     fi
 
-    DBCONNECT=${DBUSER}/"${DBPASSWORD}@"${TNSALIAS}${assysdbaconnect}
+    DBCONNECT="${DBUSER}/${DBPASSWORD}@${TNSALIAS}${assysdbaconnect}"
 
     SQLPLUS=${ORACLE_HOME}/bin/sqlplus
     if [ ! -x ${SQLPLUS} ] ; then
@@ -830,7 +838,8 @@ do
         get_oraversion $SID
         echo "-----------------------------------------------"
         echo "Logincheck to Instance: "$SID"  Version: "$ORACLE_VERSION
-        echo "select 'Login ok User: ' || user from dual;" | sqlplus $SID
+        echo "select 'Login ok User: ' || user || ' on ' || host_name
+              from v\$instance;" | sqlplus $SID
         echo "SYNC_SECTIONS=$SECTIONS"
     fi
 

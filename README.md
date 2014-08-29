@@ -49,6 +49,7 @@ as well but it is not tested on it.
 ## Version History
 
 
+# 2014.08.29_1.2.2p0_tbr: added missing changes for removing tnsnames.ora requirements
 # 2014.08.26_1.2.2p0_tbr: New Version numbering due to irritations between Check_MK and this plugin (timestamp of creation the mkp + compatible against Check_MK-Version + _tbr)
 # 2014.08.26_1.2.2p0_tbr: added owner in oracle_jobs service, added req_mir_free_space and offline disk in oracle_asm_diskgroup
 # 2014.08.26_1.2.2p0_tbr: sqlplus.sh is not required anymore, tnsnames.ora is replaced with more fields in mk_oracle_dbusers.conf
