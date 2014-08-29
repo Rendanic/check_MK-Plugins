@@ -49,14 +49,14 @@ as well but it is not tested on it.
 ## Version History
 
 
-# 2014.08.29_1.2.2p0_tbr: added missing changes for removing tnsnames.ora requirements
-# 2014.08.26_1.2.2p0_tbr: New Version numbering due to irritations between Check_MK and this plugin (timestamp of creation the mkp + compatible against Check_MK-Version + _tbr)
-# 2014.08.26_1.2.2p0_tbr: added owner in oracle_jobs service, added req_mir_free_space and offline disk in oracle_asm_diskgroup
-# 2014.08.26_1.2.2p0_tbr: sqlplus.sh is not required anymore, tnsnames.ora is replaced with more fields in mk_oracle_dbusers.conf
-# 2014.08.26_1.2.2p0_tbr: oracle_performance gets some performance data from Oracle
-# 2014.08.26_1.2.2p0_tbr: Testmode added: mk_oracle -t
-# 1.2.3: Bugfix wrong order of values in default parameters in oracle_recovery_status
-# 1.2.2: Bugfix sqlplus.sh, wallet is usable again
+* 2014.08.29_1.2.2p0_tbr: added missing changes for removing tnsnames.ora requirements
+* 2014.08.26_1.2.2p0_tbr: New Version numbering due to irritations between Check_MK and this plugin (timestamp of creation the mkp + compatible against Check_MK-Version + _tbr)
+* 2014.08.26_1.2.2p0_tbr: added owner in oracle_jobs service, added req_mir_free_space and offline disk in oracle_asm_diskgroup
+* 2014.08.26_1.2.2p0_tbr: sqlplus.sh is not required anymore, tnsnames.ora is replaced with more fields in mk_oracle_dbusers.conf
+* 2014.08.26_1.2.2p0_tbr: oracle_performance gets some performance data from Oracle
+* 2014.08.26_1.2.2p0_tbr: Testmode added: mk_oracle -t
+* 1.2.3: Bugfix wrong order of values in default parameters in oracle_recovery_status
+* 1.2.2: Bugfix sqlplus.sh, wallet is usable again
 * 1.2.0: New oracle_locks, oracle_longactivesessions Bugfix oracle_job, oracle_recovery_status. More feautures in sqlplus.sh
 * 1.1.1: Bugfix oracle_instance & oracle_jobs, some perfometers
 * 1.1.0: New Recovery State for Standby Databases
@@ -75,6 +75,7 @@ This plugin is used to check an Oracle Grid-Infrastructure or Oracle Restart.
 * Check_MK Agent 1.2.2p2 or newer
 
 ## Version History
+* 2014.08.29_1.2.2p0_tbr: ae03fa3 Fixed shell expansion and lower problem in mk_oracle_crs
 * 0.1.0: 1st release on github
 
 ## Local Checks
