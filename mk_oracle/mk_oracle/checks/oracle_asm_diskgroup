@@ -61,24 +61,28 @@ def check_oracle_asm_diskgroup(item, params, info):
         if dg_name == item:
             if typ in ('NORMAL', 'HIGH') and params.get('req_mir_free'):
 
-                req_mir_free_mb = saveint(req_mir_free_mb)
+                req_mir_free_mb = int(req_mir_free_mb)
 
                 if req_mir_free_mb < 0:
                     # requirred mirror free space could be negative!
                     req_mir_free_mb = 0
-                status, infotext, perfdata =  df_check_filesystem(g_hostname, item, int(total_mb),
-                       int(req_mir_free_mb), params)
-                infotext += ', %s redundancy, requirred mirror free space used' % typ.lower()
+
+                free_space_mb = int(req_mir_free_mb)
+
+                infotext += ', required mirror free space used' % lower()
 
             else:
-                status, infotext, perfdata =  df_check_filesystem(g_hostname, item, int(total_mb),
-                       int(free_mb), params)
-                infotext += ', %s redundancy' % typ.lower()
+                free_space_mb = int(free_mb)
 
-            offline_disks = saveint(offline_disks)
+            status, infotext, perfdata =  df_check_filesystem(g_hostname, item, int(total_mb),
+                   free_space_mb, params)
+
+            infotext += ', %s redundancy' % typ.lower()
+
+            offline_disks = int(offline_disks)
             if offline_disks > 0:
                 status = max(2, status)
-                infotext += ', %d Offline disks found (!!)' % offline_disks
+                infotext += ', %d Offline disks found(!!)' % offline_disks
 
             return (status, infotext, perfdata)
 
@@ -86,8 +90,6 @@ def check_oracle_asm_diskgroup(item, params, info):
     # checked at a later time.
     # This reduce false notifications for not running ASM-Instances
     raise MKCounterWrapped(None, "Diskgroup %s not found" % item)
-
-
 
 check_info["oracle_asm_diskgroup"] = {
     'check_function'          : check_oracle_asm_diskgroup,
