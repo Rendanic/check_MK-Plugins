@@ -48,8 +48,8 @@ def check_oracle_performance(item, params, info):
     out = ''
     perfdata = []
     this_time = int(time.time())
-    pinssum = 0
-    pinhitssum = 0
+    pins_sum = 0
+    pin_hits_sum = 0
 
     wrapped = False
 
@@ -58,36 +58,34 @@ def check_oracle_performance(item, params, info):
             # buffer_pool_statistics
             if line[1] == 'buffer_pool_statistics' and len(line) == 10:
                 sid, stat_type, name, db_block_gets, db_block_change, consistent_gets, \
-                physical_reads, physical_writesi, free_buffer_wait, buffer_busy_wait = line
+                physical_reads, physical_writes, free_buffer_wait, buffer_busy_wait = line
 
-                if name <> 'DEFAULT':
+                if name != 'DEFAULT':
                     continue
-                rate, perfdata, wrapped = loc_get_perfdata(this_time, stat_type, \
-                     'db_block_gets', db_block_gets, wrapped, perfdata)
-                rate, perfdata, wrapped = loc_get_perfdata(this_time, stat_type, \
-                     'db_block_change', db_block_change, wrapped, perfdata)
-                rate, perfdata, wrapped = loc_get_perfdata(this_time, stat_type, \
-                     'consistent_gets', consistent_gets, wrapped, perfdata)
-                rate, perfdata, wrapped = loc_get_perfdata(this_time, stat_type, \
-                     'physical_reads', physical_reads, wrapped, perfdata)
-                rate, perfdata, wrapped = loc_get_perfdata(this_time, stat_type, \
-                     'physical_writesi', physical_writesi, wrapped, perfdata)
-                rate, perfdata, wrapped = loc_get_perfdata(this_time, stat_type, \
-                     'free_buffer_wait', free_buffer_wait, wrapped, perfdata)
-                rate, perfdata, wrapped = loc_get_perfdata(this_time, stat_type, \
-                     'buffer_busy_wait', buffer_busy_wait, wrapped, perfdata)
+                for param, value in [('db_block_gets', db_block_gets),
+                                     ('db_block_change', db_block_change),
+                                     ('consistent_gets', consistent_gets),
+                                     ('physical_reads', physical_reads),
+                                     ('physical_writes', physical_writes),
+                                     ('free_buffer_wait', free_buffer_wait),
+                                     ('buffer_busy_wait', buffer_busy_wait),
+                                    ]:
+                    rate, perfdata, wrapped = loc_get_perfdata(this_time, stat_type, \
+                         param, value, wrapped, perfdata)
 
-                hit_ratio = round((1 - (float(physical_reads) / \
-                             ( int(db_block_gets) + int(consistent_gets)))) * 100, 2)
-                perfdata.append(('buffer_hit_ratio', hit_ratio))
-                out += 'Buffer Cache Hit Ratio %.0f%% ' % hit_ratio
+                if (int(db_block_gets) + int(consistent_gets)) != 0:
+                    hit_ratio = round((1 - (float(physical_reads) / \
+                                 ( int(db_block_gets) + int(consistent_gets)))) * 100, 2)
+
+                    perfdata.append(('buffer_hit_ratio', hit_ratio))
+                    out += 'Buffer Cache Hit Ratio %.0f%% ' % hit_ratio
 
             # librarycache statistics
             if line[1] == 'librarycache' and len(line) == 9:
-                sid, stat_name, namespace, gets, gethits, pins, pinhits, reloads, \
+                sid, stat_name, namespace, gets, gethits, pins, pin_hits, reloads, \
                      invalidations = line
-                pinssum += saveint(pins)
-                pinhitssum += saveint(pinhits)
+                pins_sum += saveint(pins)
+                pin_hits_sum += saveint(pin_hits)
 
             # sys_time_model
             if line[1] == 'sys_time_model' and len(line) == 4:
@@ -98,17 +96,17 @@ def check_oracle_performance(item, params, info):
                 rate, perfdata, wrapped = loc_get_perfdata(this_time, stat_type, stat_name, value, wrapped, perfdata)
                 out += '%s %.2f/s ' % (stat_name, rate)
 
-    if pinssum > 0:
-        pinssumrate, perfdata, wrapped = loc_get_perfdata(this_time, 'librarycache', \
-             'pinssum', pinssum, wrapped, perfdata)
+    if pins_sum > 0:
+        pins_sumrate, perfdata, wrapped = loc_get_perfdata(this_time, 'librarycache', \
+             'pinssum', pins_sum, wrapped, perfdata)
 
-        pinhitssumrate, perfdata, wrapped = loc_get_perfdata(this_time, 'librarycache', \
-             'pinhitssum', pinssum, wrapped, perfdata)
+        pin_hits_sum_rate, perfdata, wrapped = loc_get_perfdata(this_time, 'librarycache', \
+             'pinhitssum', pins_sum, wrapped, perfdata)
 
-        pinratio = float(pinhitssum) / pinssum * 100
+        pin_ratio = float(pin_hits_sum) / pins_sum * 100
 
-        out += 'Library Cache Hit Ratio %.0f%% ' % pinratio
-        perfdata.append(('library_cache_hit_ratio', round(pinratio, 2)))
+        out += 'Library Cache Hit Ratio %.0f%% ' % pin_ratio
+        perfdata.append(('library_cache_hit_ratio', round(pin_ratio, 2)))
 
     if wrapped:
         raise MKCounterWrapped(None, "Counter wrap")
@@ -123,7 +121,7 @@ def check_oracle_performance(item, params, info):
 check_info['oracle_performance'] = {
     "check_function"          : check_oracle_performance,
     "inventory_function"      : inventory_oracle_performance,
-    "service_description"     : "ORA %s Perf-Data",
+    "service_description"     : "ORA %s Performance",
     "has_perfdata"            : True,
     "group"                   : "oracle_performance",
 }

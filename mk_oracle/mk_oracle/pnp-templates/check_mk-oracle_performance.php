@@ -6,7 +6,7 @@
 # |           | |___| | | |  __/ (__|   <    | |  | | . \            |
 # |            \____|_| |_|\___|\___|_|\_\___|_|  |_|_|\_\           |
 # |                                                                  |
-# | Copyright Mathias Kettner 2013             mk@mathias-kettner.de |
+# | Copyright Mathias Kettner 2014             mk@mathias-kettner.de |
 # +------------------------------------------------------------------+
 #
 # This file is part of Check_MK.
@@ -22,8 +22,12 @@
 # License along with GNU Make; see the file  COPYING.  If  not,  write
 # to the Free Software Foundation, Inc., 51 Franklin St,  Fifth Floor,
 # Boston, MA 02110-1301 USA.
-$i=0;
 
+$title = str_replace("_", " ", $servicedesc);
+$opt[1] = "--vertical-label 'Time(s)' -X0 --upper-limit " . ($MAX[1] * 120 / 100) . " -l0  --title \"Database Time $hostname / $title\" ";
+
+# For the rest of the data we rather work with names instead
+# of numbers
 $RRD = array();
 foreach ($NAME as $i => $n) {
     $RRD[$n] = "$RRDFILE[$i]:$DS[$i]:MAX";
@@ -31,103 +35,61 @@ foreach ($NAME as $i => $n) {
     $CRIT[$n] = $CRIT[$i];
     $MIN[$n]  = $MIN[$i];
     $MAX[$n]  = $MAX[$i];
-    $ACT[$n]  = $ACT[$i];
 }
 
-$i++;
+$def[1] = "";
 
-$title = str_replace("_", " ", $servicedesc);
-$opt[$i] = "--vertical-label 'DB CPU/s' -l0  --title \"DB Time/s for $hostname / $title\" ";
-
-$def[$i] = "DEF:DB_time=$RRDFILE[1]:$DS[1]:MAX ";
-$def[$i] .= "AREA:DB_time#00ff48: ";
-$def[$i] .= "LINE:DB_time#008f38: ";
-$def[$i] .= "GPRINT:DB_time:LAST:\"last\: %3.0lf\" ";
-$def[$i] .= "GPRINT:DB_time:AVERAGE:\"avg\: %3.0lf\" ";
-$def[$i] .= "GPRINT:DB_time:MAX:\"max\: %3.0lf\" ";
-
-
-$i++;
-$opt[$i] = "--vertical-label 'DB CPU/s' -l0  --title \"DB CPU/s for $hostname / $title\" ";
-
-$def[$i] = "DEF:DB_CPU=$RRDFILE[2]:$DS[2]:MAX ";
-$def[$i] .= "AREA:DB_CPU#00ff48: ";
-$def[$i] .= "LINE:DB_CPU#008f38: ";
-$def[$i] .= "GPRINT:DB_CPU:LAST:\"last\: %3.0lf\" ";
-$def[$i] .= "GPRINT:DB_CPU:AVERAGE:\"avg\: %3.0lf\" ";
-$def[$i] .= "GPRINT:DB_CPU:MAX:\"max\: %3.0lf\" ";
-
-$i++;
-if (isset($RRD["library_cache_hit_ratio"])) {
-    $def[$i]     = "";
-    $opt[$i] = "--vertical-label 'Ratio in %' -l0  --title \"Library Cache Hit Ratio for $hostname / $title\" ";
-        $ds_name[$i] = "Requests/sec";
-    $color = '#000000';
-    foreach ($this->DS as $KEY=>$VAL) {
-        if($VAL['NAME'] == 'library_cache_hit_ratio') {
-            $def[$i]    .= rrd::def     ("var".$KEY, $VAL['RRDFILE'], $VAL['DS'], "AVERAGE");
-            $def[$i]    .= rrd::line1   ("var".$KEY, $color, rrd::cut($VAL['NAME'],16), 'STACK' );
-            $def[$i]    .= rrd::gprint  ("var".$KEY, array("LAST","MAX","AVERAGE"), "%6.1lf/s");
-        }
-    }
+if (isset($RRD['DB_time'])) {
+   $def[1] .= "DEF:DB_time=$RRD[DB_time] "
+           . "GPRINT:DB_time:LAST:\"%6.0lf s last\" "
+           . "GPRINT:DB_time:AVERAGE:\"%6.0lf s avg\" "
+           . "GPRINT:DB_time:MAX:\"%6.0lf s max\\n\" " 
+           . "AREA:DB_time#008030:\"DB Time        \" "
+        . "'COMMENT:\\n' ";
 }
 
-$i++;
-if (isset($RRD["buffer_hit_ratio"])) {
-    $def[$i]     = "";
-    $opt[$i] = "--vertical-label 'Ratio in %' -l0  --title \"Buffer Cache Hit Ratio for $hostname / $title\" ";
-        $ds_name[$i] = "Requests/sec";
-    $color = '#000000';
-    foreach ($this->DS as $KEY=>$VAL) {
-        if($VAL['NAME'] == 'buffer_hit_ratio') {
-            $def[$i]    .= rrd::def     ("var".$KEY, $VAL['RRDFILE'], $VAL['DS'], "AVERAGE");
-            $def[$i]    .= rrd::line1   ("var".$KEY, $color, rrd::cut($VAL['NAME'],16), 'STACK' );
-            $def[$i]    .= rrd::gprint  ("var".$KEY, array("LAST","MAX","AVERAGE"), "%6.1lf/s");
-        }
-    }
+if (isset($RRD['DB_CPU'])) {
+   $def[1] .= "DEF:DB_CPU=$RRD[DB_CPU] "
+           . "AREA:DB_CPU#80ff40:\"DB CPU        \" "
+           . "GPRINT:DB_CPU:LAST:\"%6.0lf s last\" "
+           . "GPRINT:DB_CPU:AVERAGE:\"%6.0lf s avg\" "
+           . "GPRINT:DB_CPU:MAX:\"%6.0lf s max\\n\" " ;
 }
 
-$i++;
-if (isset($RRD["consistent_gets"])) {
-    $def[$i]     = "";
-    $opt[$i] = "--vertical-label 'Ratio in %' -l0  --title \"Consistent Gets for $hostname / $title\" ";
-        $ds_name[$i] = "Requests/sec";
-    $color = '#000000';
-    foreach ($this->DS as $KEY=>$VAL) {
-        if($VAL['NAME'] == 'consistent_gets') {
-            $def[$i]    .= rrd::def     ("var".$KEY, $VAL['RRDFILE'], $VAL['DS'], "AVERAGE");
-            $def[$i]    .= rrd::line1   ("var".$KEY, $color, rrd::cut($VAL['NAME'],16), 'STACK' );
-            $def[$i]    .= rrd::gprint  ("var".$KEY, array("LAST","MAX","AVERAGE"), "%6.1lf/s");
-        }
-    }
+$opt[2] = "--vertical-label 'percentage' -X0 --upper-limit " . ($MAX[1] * 120 / 100) . " -l0  --title \"Database Time $hostname / $title\" ";
+$def[2] = "";
+if (isset($RRD['buffer_hit_ratio'])) {
+   $def[2] .= "DEF:buffer_hit_ratio=$RRD[buffer_hit_ratio] "
+           . "LINE2:buffer_hit_ratio#80ff40:\"Buffer Cache Hit Ratio   \" "
+           . "GPRINT:buffer_hit_ratio:LAST:\"%6.0lf  last\" "
+           . "GPRINT:buffer_hit_ratio:AVERAGE:\"%6.0lf  avg\" "
+           . "GPRINT:buffer_hit_ratio:MAX:\"%6.0lf  max\\n\" " ;
 }
 
-$i++;
-if (isset($RRD["physical_reads"])) {
-    $def[$i]     = "";
-    $opt[$i] = "--vertical-label 'Ratio in %' -l0  --title \"Physical Reads for $hostname / $title\" ";
-        $ds_name[$i] = "Requests/sec";
-    $color = '#000000';
-    foreach ($this->DS as $KEY=>$VAL) {
-        if($VAL['NAME'] == 'physical_reads') {
-            $def[$i]    .= rrd::def     ("var".$KEY, $VAL['RRDFILE'], $VAL['DS'], "AVERAGE");
-            $def[$i]    .= rrd::line1   ("var".$KEY, $color, rrd::cut($VAL['NAME'],16), 'STACK' );
-            $def[$i]    .= rrd::gprint  ("var".$KEY, array("LAST","MAX","AVERAGE"), "%6.1lf/s");
-        }
-    }
+$opt[3] = "--vertical-label 'percentage' -X0 --upper-limit " . ($MAX[1] * 120 / 100) . " -l0  --title \"Database Time $hostname / $title\" ";
+$def[3] = "";
+if (isset($RRD['library_cache_hit_ratio'])) {
+   $def[3] .= "DEF:library_cache_hit_ratio=$RRD[library_cache_hit_ratio] "
+           . "LINE2:library_cache_hit_ratio#80ff40:\"Buffer Cache Hit Ratio   \" "
+           . "GPRINT:library_cache_hit_ratio:LAST:\"%6.0lf  last\" "
+           . "GPRINT:library_cache_hit_ratio:AVERAGE:\"%6.0lf  avg\" "
+           . "GPRINT:library_cache_hit_ratio:MAX:\"%6.0lf  max\\n\" " ;
 }
 
-$i++;
-if (isset($RRD["db_block_gets"])) {
-    $def[$i]     = "";
-    $opt[$i] = "--vertical-label 'Ratio in %' -l0  --title \"Physical Reads for $hostname / $title\" ";
-        $ds_name[$i] = "Requests/sec";
-    $color = '#000000';
-    foreach ($this->DS as $KEY=>$VAL) {
-        if($VAL['NAME'] == 'db_block_gets') {
-            $def[$i]    .= rrd::def     ("var".$KEY, $VAL['RRDFILE'], $VAL['DS'], "AVERAGE");
-            $def[$i]    .= rrd::line1   ("var".$KEY, $color, rrd::cut($VAL['NAME'],16), 'STACK' );
-            $def[$i]    .= rrd::gprint  ("var".$KEY, array("LAST","MAX","AVERAGE"), "%6.1lf/s");
-        }
-    }
+$opt[4] = "--vertical-label 'Counts' -X0 --upper-limit " . ($MAX[1] * 120 / 100) . " -l0  --title \"Database Time $hostname / $title\" ";
+$def[4] = "";
+if (isset($RRD['consistent_gets'])) {
+   $def[4] .= "DEF:consistent_gets=$RRD[consistent_gets] "
+           . "LINE1:consistent_gets#80ff40:\"Consistent Gets  \" "
+           . "GPRINT:consistent_gets:LAST:\"%6.0lf  last\" "
+           . "GPRINT:consistent_gets:AVERAGE:\"%6.0lf  avg\" "
+           . "GPRINT:consistent_gets:MAX:\"%6.0lf  max\\n\" " ;
+}
+
+if (isset($RRD['physical_reads'])) {
+   $def[4] .= "DEF:physical_reads=$RRD[physical_reads] "
+           . "LINE1:physical_reads#008030:\"Physical Reads \" "
+           . "GPRINT:physical_reads:LAST:\"%6.0lf  last\" "
+           . "GPRINT:physical_reads:AVERAGE:\"%6.0lf  avg\" "
+           . "GPRINT:physical_reads:MAX:\"%6.0lf  max\\n\" " ;
 }

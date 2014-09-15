@@ -19,12 +19,14 @@ version (1.2.6) of Check_MK.
 * Check_MK Agent 1.2.2p2 or newer
 
 ## How to configure the plugin
-The configuration is very simple since <todo>.
+The configuration is very simple since 2014.09.14_1.2.2p0_tbr.
+The usage of an Oracle wallet is not documented here.
+
 ### Copy sqlnet.ora to $MK_CONFDIR. 
 
-This file is needed for the Oracle Client
-to prevent unwanted diagnostic data to the homedirectory of root. There
-is also a 
+This file is needed for the Oracle Client to prevent unwanted diagnostic 
+data to the homedirectory of root. An Oracle wallet also needs the
+sqlnet.ora.
 
 ### Configure a Database User
 This depends on the instance_type.
@@ -40,20 +42,19 @@ This depends on the instance_type.
     create user check_mk identified by monitoring;
     grant sysdba to check_mk;
 
-Normaly the sysdba is not supported for ASM anymore. This
-is still working under 11.2 and 12.1 and has the advantage
-that check_mk is not able to top the Instance but can read
-the needed data from the Instance.
+Normaly the sysdba is not supported for ASM anymore. This is still working 
+under 11.2 and 12.1 and has the advantage that check_mk is not able to top
+the Instance but can read the needed data from the Instance.
 
-Do not use special characters like '$&" or spaces as password.
+Do not use special characters like '$&" or spaces in passwords.
 
 ### Configure $MK_CONFDIR/mk_oracle.cfg
 
 The mk_oracle.cfg has some options.
 
-    ASMUSER='<user>:<password>:sysdba'
-    DBUSER='<user>:<password>:<sysdba/sysoper>:<hostname>:<port>'
-    DBUSER_<ORACLE_SID>='<user>:<password>:<sysdba/sysoper>:<hostname>:<port>'
+    ASMUSER='user:password:sysdba'
+    DBUSER='user:password:sysdba/sysoper:hostname:port'
+    DBUSER_<ORACLE_SID>='user:password:sysdba/sysoper:hostname:port'
 
 DBUSER= is used as a wildcard for every normal Database Instance. An individual
 configuration is possivle, when DBUSER_<ORACLE_SID> is used.
@@ -62,7 +63,7 @@ configuration is possivle, when DBUSER_<ORACLE_SID> is used.
 * hostname localhost
 * port 1521
 
-    ASMUSER='<user>:<password>:sysdba'
+    ASMUSER='user:password:sysdba'
 
 Example:
     ASMUSER="asmsnmp:asmsnmp:sysdba"
@@ -111,6 +112,8 @@ Login as root
 
 ## Version History
 
+* 2014.09.14_1.2.2p0_tbr: oracle_performance renamed Check from ORA ORACLE_SID Perf-Data to ORA ORACLE_SID Performance. A reinventory is needed!
+* 2014.09.14_1.2.2p0_tbr: oracle_performance fix for Physical Standby Databases
 * 2014.09.14_1.2.2p0_tbr: oracle_instance new WATO rule for archivelog, noarchivelog, force logging, no force logging, logins and uptime
 * 2014.09.14_1.2.2p0_tbr: oracle_recovery_status: Bugfix for OFFLINE datafiles
 * 2014.09.14_1.2.2p0_tbr: mk_oracle: mk_oracle_dbuser.conf moved to mk_oracle.cfg
