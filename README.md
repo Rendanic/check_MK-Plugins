@@ -56,8 +56,8 @@ The mk_oracle.cfg has some options.
     DBUSER='user:password:sysdba/sysoper:hostname:port'
     DBUSER_<ORACLE_SID>='user:password:sysdba/sysoper:hostname:port'
 
-DBUSER= is used as a wildcard for every normal Database Instance. An individual
-configuration is possivle, when DBUSER_<ORACLE_SID> is used.
+DBUSER= is used as a default all normal Database Instances. This can be 
+overwritten by an individual configuration with DBUSER_<ORACLE_SID>.
 
 * sysdba/sysoper is empty
 * hostname localhost
@@ -66,6 +66,7 @@ configuration is possivle, when DBUSER_<ORACLE_SID> is used.
     ASMUSER='user:password:sysdba'
 
 Example:
+
     ASMUSER="asmsnmp:asmsnmp:sysdba"
     DBUSER="check_mk:monitoring"
     DBUSER_tux="check_mk:monitoring:sysdba"
