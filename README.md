@@ -113,6 +113,8 @@ Login as root
 
 ## Version History
 
+* 2014.09.17_1.2.2p0_tbr: mk_oracle: fixed broken ASYNC Sections
+
 * 2014.09.14_1.2.2p0_tbr: oracle_performance renamed Check from ORA ORACLE_SID Perf-Data to ORA ORACLE_SID Performance. A reinventory is needed!
 * 2014.09.14_1.2.2p0_tbr: oracle_performance fix for Physical Standby Databases
 * 2014.09.14_1.2.2p0_tbr: oracle_instance new WATO rule for archivelog, noarchivelog, force logging, no force logging, logins and uptime
