@@ -182,6 +182,12 @@ def check_oracle_tablespaces(item, params, info):
         params = { "autoextend" : params[0], "levels" : params[1:] }
 
     autoext = params.get("autoextend")
+
+    if params.get("defaultincrement"):
+        oracle_tablespaces_check_default_increment = True
+    else:
+        oracle_tablespaces_check_default_increment = False
+
     uses_default_increment = False
 
     for line in info:

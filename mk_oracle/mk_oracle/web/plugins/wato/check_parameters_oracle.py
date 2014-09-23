@@ -335,3 +335,103 @@ register_check_parameters(
     'first',
 )
 
+
+register_check_parameters(
+    subgroup_applications,
+    "oracle_tablespaces",
+    _("Oracle Tablespaces"),
+    Dictionary(
+        help = _("A tablespace is a container for segments (tables, indexes, etc). A "
+                 "database consists of one or more tablespaces, each made up of one or "
+                 "more data files. Tables and indexes are created within a particular "
+                 "tablespace. "
+                 "This rule allows you to define checks on the size of tablespaces."),
+        elements = [
+            ("levels",
+                Alternative(
+                    title = _("Levels for the Tablespace size"),
+                    elements = [
+                        Tuple(
+                            title = _("Percentage free space"),
+                            elements = [
+                                Percentage(title = _("Warning if below"), unit = _("% free")),
+                                Percentage(title = _("Critical if below"), unit = _("% free")),
+                            ]
+                        ),
+                        Tuple(
+                            title = _("Absolute free space"),
+                            elements = [
+                                 Integer(title = _("Warning if below"), unit = _("MB")),
+                                 Integer(title = _("Critical if below"), unit = _("MB")),
+                            ]
+                        ),
+                        ListOf(
+                            Tuple(
+                                orientation = "horizontal",
+                                elements = [
+                                    Filesize(title = _("Tablespace larger than")),
+                                    Alternative(
+                                        title = _("Levels for the Tablespace size"),
+                                        elements = [
+                                            Tuple(
+                                                title = _("Percentage free space"),
+                                                elements = [
+                                                    Percentage(title = _("Warning if below"), unit = _("% free")),
+                                                    Percentage(title = _("Critical if below"), unit = _("% free")),
+                                                ]
+                                            ),
+                                            Tuple(
+                                                title = _("Absolute free space"),
+                                                elements = [
+                                                     Integer(title = _("Warning if below"), unit = _("MB")),
+                                                     Integer(title = _("Critical if below"), unit = _("MB")),
+                                                ]
+                                            ),
+                                        ]
+                                    ),
+                                ],
+                            ),
+                            title = _('Dynamic levels'),
+                        ),
+                    ]
+                )
+            ),
+            ("magic",
+               Float(
+                  title = _("Magic factor (automatic level adaptation for large tablespaces)"),
+                  minvalue = 0.1,
+                  maxvalue = 1.0)),
+            (  "magic_normsize",
+               Integer(
+                   title = _("Reference size for magic factor"),
+                   minvalue = 1,
+                   default_value = 1000,
+                   label = _("MB"))),
+            ( "levels_low",
+              Tuple(
+                  title = _("Minimum levels if using magic factor"),
+                  help = _("The tablespace levels will never fall below these values, when using "
+                           "the magic factor and the tablespace is very small."),
+                  elements = [
+                      Percentage(title = _("Warning if above"),  unit = _("% usage"), allow_int = True),
+                      Percentage(title = _("Critical if above"), unit = _("% usage"), allow_int = True)])),
+            ( "autoextend",
+                Checkbox(
+                  title = _("Autoextend"),
+                  label = _("Autoextension is expected"),
+                  help = "")),
+            ( "defaultincrement",
+                Checkbox(
+                  title = _("Detault Increment"),
+                  label = _("State is WARNING in case of next extent is default."),
+                  help = "")),
+                   ]),
+    TextAscii(
+        title = _("Explicit tablespaces"),
+        help = _("Here you can set explicit tablespaces by defining them via SID and the tablespace name, separated by a dot, for example <b>pengt.TEMP</b>"),
+        regex = '.+\..+',
+        allow_empty = False),
+     None
+)
+
+

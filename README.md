@@ -56,7 +56,7 @@ The mk_oracle.cfg has some options.
     DBUSER='user:password:sysdba/sysoper:hostname:port'
     DBUSER_<ORACLE_SID>='user:password:sysdba/sysoper:hostname:port'
 
-DBUSER= is used as a default all normal Database Instances. This can be 
+DBUSER= is used as a default for all normal Database Instances. This can be 
 overwritten by an individual configuration with DBUSER_<ORACLE_SID>.
 
 * sysdba/sysoper is empty
@@ -112,6 +112,9 @@ Login as root
 * man-pages are missing
 
 ## Version History
+
+* 2014.09.23_1.2.2p0_tbr: WATO rule for default increment
+* 2014.09.23_1.2.2p0_tbr: merged all changes from mk_oracle to mk_oracle.aix
 
 * 2014.09.17_1.2.2p0_tbr: mk_oracle: fixed broken ASYNC Sections
 
