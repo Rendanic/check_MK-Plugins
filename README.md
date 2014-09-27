@@ -113,6 +113,11 @@ Login as root
 
 ## Version History
 
+* 2014.09.27_1.2.2p0_tbr: oracle_instance added ORA +ASM Instance check
+* 2014.09.27_1.2.2p0_tbr: mk_oracle: Bugfix for ASM <= 10.2 
+* 2014.09.27_1.2.2p0_tbr: mk_oracle: Replaced sed -r with grep
+* 2014.09.27_1.2.2p0_tbr: mk_oracle: Code Cleanup
+
 * 2014.09.23_1.2.2p0_tbr: WATO rule for default increment
 * 2014.09.23_1.2.2p0_tbr: merged all changes from mk_oracle to mk_oracle.aix
 

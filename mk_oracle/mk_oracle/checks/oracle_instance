@@ -71,7 +71,7 @@ def check_oracle_instance(item, params, info):
 
             # Make sure that primary databases are always open
             if database_role == 'PRIMARY' and openmode != 'OPEN':
-                state = max(state,2)
+                state = 2
                 infotext += '(!!)'
 
             # ORACLE is sick and cannot handle timezone changes >:-P
@@ -89,30 +89,33 @@ def check_oracle_instance(item, params, info):
 
                 infotext += ' (levels at %s/%s)' % (get_age_human_readable(warn), get_age_human_readable(crit))
                 if up_seconds <= crit:
-                    state = max(state, 2)
+                    state = 2
                     infotext += '(!!) not long enough up'
                 elif up_seconds <= warn:
                     state = max(state, 1)
                     infotext += '(!) not long enough up'
 
-            # logins are only possible when the database is open
-            if openmode == 'OPEN':
-                infotext += ', Logins %s' % (logins.lower())
-                state, infotext = state_marker(state, infotext, 'logins', logins, 'RESTRICTED')
+            # ASM has no login and archivelog check
+            if database_role != 'ASM':
 
-            infotext += ', Log Mode %s' % (log_mode.lower())
-            state, infotext = state_marker(state, infotext, 'archivelog', log_mode, 'ARCHIVELOG')
-            state, infotext = state_marker(state, infotext, 'noarchivelog',log_mode,  'NOARCHIVELOG')
+                # logins are only possible when the database is open
+                if openmode == 'OPEN':
+                    infotext += ', Logins %s' % (logins.lower())
+                    state, infotext = state_marker(state, infotext, 'logins', logins, 'RESTRICTED')
 
-            # force logging is only usable when archivelog is enabled
-            if log_mode == 'ARCHIVELOG':
-                if archiver != 'STARTED':
-                    infotext += '. Archiver %s(!!)' % (archiver.lower())
-                    state = max(state, 2)
+                infotext += ', Log Mode %s' % (log_mode.lower())
+                state, infotext = state_marker(state, infotext, 'archivelog', log_mode, 'ARCHIVELOG')
+                state, infotext = state_marker(state, infotext, 'noarchivelog',log_mode,  'NOARCHIVELOG')
 
-                infotext += ', Force Logging %s' % (force_logging.lower())
-                state, infotext = state_marker(state, infotext, 'forcelogging', force_logging, 'YES')
-                state, infotext = state_marker(state, infotext, 'noforcelogging', force_logging, 'NO')
+                # force logging is only usable when archivelog is enabled
+                if log_mode == 'ARCHIVELOG':
+                    if archiver != 'STARTED':
+                        infotext += '. Archiver %s(!!)' % (archiver.lower())
+                        state = 2
+
+                    infotext += ', Force Logging %s' % (force_logging.lower())
+                    state, infotext = state_marker(state, infotext, 'forcelogging', force_logging, 'YES')
+                    state, infotext = state_marker(state, infotext, 'noforcelogging', force_logging, 'NO')
 
             perfdata = [('uptime', up_seconds)]
             return state, infotext, perfdata
