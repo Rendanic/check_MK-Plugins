@@ -157,11 +157,14 @@ Login as root
 This plugin is used to check an Oracle Grid-Infrastructure or Oracle Restart.
 
 ## Requirements
-* Linux   Grid-Infrastructure or Oracle Restart 11.2
+* Linux   Grid-Infrastructure or Oracle Restart 11.2 + 12.1, Oracle CRS 10.2 + 11.1
 * Check_MK Agent 1.2.2p2 or newer
 
 ## Version History
+* 2014.09.28_1.2.2p0_tbr: Support for Gird-Infrastructure 12.1 added
+
 * 2014.08.29_1.2.2p0_tbr: ae03fa3 Fixed shell expansion and lower problem in mk_oracle_crs
+
 * 0.1.0: 1st release on github
 
 ## Local Checks

@@ -80,7 +80,7 @@ function printcrsdata() {
 
     echo "nodename|"$OLS_NODENAME
 
-    if [ $crs_version_short = '11.2' ] ; then
+    if [ $crs_version_short = '11.2' -o $crs_version_short = '12.1' ] ; then
         $CRSCTL stat res -v -n $OLS_NODENAME -init | grep -E $resourcefilter | sed "s/^/csslocal\|/"
         for nodelist in $($OLSNODES)
         do
