@@ -113,6 +113,8 @@ Login as root
 
 ## Version History
 
+* 2014.09.28_1.2.2p0_tbr: mk_oracle: added missing mk_oracle mk_oracle.aix for new ASM check
+
 * 2014.09.27_1.2.2p0_tbr: oracle_instance added ORA +ASM Instance check
 * 2014.09.27_1.2.2p0_tbr: mk_oracle: Bugfix for ASM <= 10.2 
 * 2014.09.27_1.2.2p0_tbr: mk_oracle: Replaced sed -r with grep
