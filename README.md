@@ -43,7 +43,7 @@ This depends on the instance_type.
     grant sysdba to check_mk;
 
 Normaly the sysdba is not supported for ASM anymore. This is still working 
-under 11.2 and 12.1 and has the advantage that check_mk is not able to top
+under 11.2 and 12.1 and has the advantage that check_mk is not able to stop
 the Instance but can read the needed data from the Instance.
 
 Do not use special characters like '$&" or spaces in passwords.
