@@ -113,6 +113,8 @@ Login as root
 
 ## Version History
 
+* 2014.09.30_1.2.2p0_tbr: mk_oracle: Oracle 9.2 is working with limited checks
+
 * 2014.09.28_1.2.2p0_tbr: mk_oracle: added missing mk_oracle mk_oracle.aix for new ASM check
 
 * 2014.09.27_1.2.2p0_tbr: oracle_instance added ORA +ASM Instance check
