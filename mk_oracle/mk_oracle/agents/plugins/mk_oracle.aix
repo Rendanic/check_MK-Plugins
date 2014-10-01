@@ -650,6 +650,9 @@ function get_oraversion () {
     set_oraenv ${1}
     ORACLE_VERSION=$($ORACLE_HOME/bin/sqlplus -V | grep ^SQL | cut -d" " -f3 | cut -d"." -f-2)
 
+    # remove possible existing variables
+    unset AT_LEAST_ORACLE_121 AT_LEAST_ORACLE_112 AT_LEAST_ORACLE_111 AT_LEAST_ORACLE_102 AT_LEAST_ORACLE_101 AT_LEAST_ORACLE_92
+
     if [ "$ORACLE_VERSION" = '12.1' ] ; then
         AT_LEAST_ORACLE_121=yes
     fi
