@@ -114,6 +114,8 @@ Login as root
 ## Version History
 * in_work: mk_oracle: bugfix for ORACLE_SID with '_'
 * in_work: mk_oracle: fixed dataguard_stat availible from 10.2 onwards
+* in_work: mk_oracle: fixed missing executes of sql for 10.1
+
 
 * 2014.10.01_1.2.2p0_tbr: mk_oracle: Bugfix for Environments with different Oracle Versions
 

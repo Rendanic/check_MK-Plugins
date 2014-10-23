@@ -678,8 +678,8 @@ function get_oraversion () {
     fi
 
     if [ "$ORACLE_VERSION" = '12.1' -o "$ORACLE_VERSION" = '11.2' \
-         -o $ORACLE_VERSION" = '11.1' -o "$ORACLE_VERSION" = '10.2' \
-         -o $ORACLE_VERSION" = '10.1' -o "$ORACLE_VERSION" = '9.2' ] ; then
+         -o "$ORACLE_VERSION" = '11.1' -o "$ORACLE_VERSION" = '10.2' \
+         -o "$ORACLE_VERSION" = '10.1' -o "$ORACLE_VERSION" = '9.2' ] ; then
         AT_LEAST_ORACLE_92=yes
     fi
 }
