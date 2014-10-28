@@ -103,19 +103,21 @@ def check_oracle_instance(item, params, info):
                     infotext += ', Logins %s' % (logins.lower())
                     state, infotext = state_marker(state, infotext, 'logins', logins, 'RESTRICTED')
 
-                infotext += ', Log Mode %s' % (log_mode.lower())
-                state, infotext = state_marker(state, infotext, 'archivelog', log_mode, 'ARCHIVELOG')
-                state, infotext = state_marker(state, infotext, 'noarchivelog',log_mode,  'NOARCHIVELOG')
+                # the new internal database _MGMTDB from 12.1.0.2 is always in NOARCHIVELOG mode
+                if name != '_MGMTDB' and sid != '-MGMTDB':
+                    infotext += ', Log Mode %s' % (log_mode.lower())
+                    state, infotext = state_marker(state, infotext, 'archivelog', log_mode, 'ARCHIVELOG')
+                    state, infotext = state_marker(state, infotext, 'noarchivelog',log_mode,  'NOARCHIVELOG')
 
-                # force logging is only usable when archivelog is enabled
-                if log_mode == 'ARCHIVELOG':
-                    if archiver != 'STARTED':
-                        infotext += '. Archiver %s(!!)' % (archiver.lower())
-                        state = 2
+                    # force logging is only usable when archivelog is enabled
+                    if log_mode == 'ARCHIVELOG':
+                        if archiver != 'STARTED':
+                            infotext += '. Archiver %s(!!)' % (archiver.lower())
+                            state = 2
 
-                    infotext += ', Force Logging %s' % (force_logging.lower())
-                    state, infotext = state_marker(state, infotext, 'forcelogging', force_logging, 'YES')
-                    state, infotext = state_marker(state, infotext, 'noforcelogging', force_logging, 'NO')
+                        infotext += ', Force Logging %s' % (force_logging.lower())
+                        state, infotext = state_marker(state, infotext, 'forcelogging', force_logging, 'YES')
+                        state, infotext = state_marker(state, infotext, 'noforcelogging', force_logging, 'NO')
 
             perfdata = [('uptime', up_seconds)]
             return state, infotext, perfdata

@@ -84,7 +84,6 @@ Login as root
 * ORACLE_SID is converted to uppercase service_name in Check_MK
 * Dependency between Instancecheck and all other checks
 * Instance goes CRITICAL, when Instance is not OPEN and Primary
-* connect as sysdba is possible with mk_oracle_dbuser.conf
 * Undo- and Temp-Tablespace are not notified
 * Reduced number of connections to Oracle
 * Added req_mir_free_space and offline disks to oracle_asm_diskgroup
@@ -92,8 +91,6 @@ Login as root
 * some checks are executed in background - reduce the execution time of agent
 * new names for ORA * Jobs, 
 * Testmode added mk_oracle -t
-* tnsnames.ora is replaced with addional fields in mk_oracle_dbuser.conf
-* mk_oracle_dbuser.conf is removed by new variables in mk_oracle.cfg
 * sqlplus.sh is removed since 2014.08.26_1.2.2p0_tbr
 
 ## new checks compared to original mk_oracle
@@ -112,9 +109,11 @@ Login as root
 * man-pages are missing
 
 ## Version History
-* in_work: mk_oracle: bugfix for ORACLE_SID with '_'
-* in_work: mk_oracle: fixed dataguard_stat availible from 10.2 onwards
-* in_work: mk_oracle: fixed missing executes of sql for 10.1
+* 2014.10.28_1.2.2p0_tbr: mk_oracle: bugfix for ORACLE_SID with '_'
+* 2014.10.28_1.2.2p0_tbr: mk_oracle: fixed dataguard_stat availible from 10.2 onwards
+* 2014.10.28_1.2.2p0_tbr: mk_oracle: fixed missing executes of sql for 10.1
+* 2014.10.28_1.2.2p0_tbr: mk_oracle: fixed forever running Jobs in oracle_jobs
+* 2014.10.28_1.2.2p0_tbr: mk_oracle: added new Instance MGMTDB for Oracle 12.1.0.2
 
 
 * 2014.10.01_1.2.2p0_tbr: mk_oracle: Bugfix for Environments with different Oracle Versions
