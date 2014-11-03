@@ -109,6 +109,8 @@ Login as root
 * man-pages are missing
 
 ## Version History
+* 2014.11.04_1.2.2p0_tbr: mk_oracle: Bugfix oracle_rman detect failed jobs, age changed to seconds
+
 * 2014.10.28_1.2.2p0_tbr: mk_oracle: bugfix for ORACLE_SID with '_'
 * 2014.10.28_1.2.2p0_tbr: mk_oracle: fixed dataguard_stat availible from 10.2 onwards
 * 2014.10.28_1.2.2p0_tbr: mk_oracle: fixed missing executes of sql for 10.1
