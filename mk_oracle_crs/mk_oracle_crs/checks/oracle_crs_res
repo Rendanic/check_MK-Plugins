@@ -7,7 +7,7 @@
 # |           | |___| | | |  __/ (__|   <    | |  | | . \            |
 # |            \____|_| |_|\___|\___|_|\_\___|_|  |_|_|\_\           |
 # |                                                                  |
-# | Copyright Mathias Kettner 2013             mk@mathias-kettner.de |
+# | Copyright Mathias Kettner 2014             mk@mathias-kettner.de |
 # +------------------------------------------------------------------+
 #
 # This file is part of Check_MK.
@@ -50,7 +50,6 @@ def parse_oracle_crs_data(info):
         if line[2] == '\n' or line[1] == 'nodename':
             continue
         if line[2][0:5] == 'NAME=':
-#            print line[2].split('=', 1)
 
             if len(datadict) > 0:
                 data.append([datadict.copy(), line[1]])
@@ -83,12 +82,6 @@ def get_oracle_crs_runninginfo(item, data):
 
     return infotext
 
-def get_oracle_crs_nodename(info):
-    for line in info:
-        if line[1] == 'nodename':
-            return line[2]
-    return ''
-
 def check_oracle_crs_res(item, params, info):
     # state = -1 => no data for Service
     state = -1
@@ -100,13 +93,12 @@ def check_oracle_crs_res(item, params, info):
     for line in data:
 
         nodename = line[1]
-        crsnodename = get_oracle_crs_nodename(info)
         resname = line[0]['NAME']
         restype = line[0]['TYPE']
         resstate = line[0]['STATE'].split(' ', 1)[0]
         restarget = line[0]['TARGET']
 
-        if resname == item and nodename in ('csslocal', crsnodename):
+        if resname == item:
             if nodename == 'csslocal':
                 runningtext = '[local resource]'
             else:
