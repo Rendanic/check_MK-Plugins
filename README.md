@@ -78,32 +78,6 @@ Login as root
     export MK_CONFDIR=/etc/check_mk
     /usr/lib/check_mk_agent/plugins/mk_oracle -t
 
-
-
-## notable changes to original mk_oracle:
-* ORACLE_SID is converted to uppercase service_name in Check_MK
-* Dependency between Instancecheck and all other checks
-* Instance goes CRITICAL, when Instance is not OPEN and Primary
-* Undo- and Temp-Tablespace are not notified
-* Reduced number of connections to Oracle
-* Added req_mir_free_space and offline disks to oracle_asm_diskgroup
-* Performancedata added (DB Time, DB CPU, Buffer-Cache and Library-Cache Hit-Ratio)
-* some checks are executed in background - reduce the execution time of agent
-* new names for ORA * Jobs, 
-* Testmode added mk_oracle -t
-* sqlplus.sh is removed since 2014.08.26_1.2.2p0_tbr
-
-## new checks compared to original mk_oracle
-* Instancecheck with more details about the instance
-* undo Monitoring
-* RMAN-Backup
-* Fast-Recovery-Area
-* Tablespace-Quotas
-* Recovery State of a Standby Database
-* Locks from v$lock
-* Long Active Sessions
-* Performance data
-
 ## known issues
 * some pnp-templates are missing
 * man-pages are missing
