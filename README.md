@@ -83,33 +83,24 @@ Login as root
 * man-pages are missing
 
 ## Version History
+* 2014.11.24_1.2.2p0_tbr: mk_oracle: fixed wrong calculation for NORMAL and HIGH Redundancy Disk Groups
 * 2014.11.12_1.2.2p0_tbr: mk_oracle: Removed default rule in oracle_recovery_status, no alarms without a rule anymore
-
 * 2014.11.04_1.2.2p0_tbr: mk_oracle: Bugfix oracle_rman detect failed jobs, age changed to seconds
-
 * 2014.10.28_1.2.2p0_tbr: mk_oracle: bugfix for ORACLE_SID with '_'
 * 2014.10.28_1.2.2p0_tbr: mk_oracle: fixed dataguard_stat availible from 10.2 onwards
 * 2014.10.28_1.2.2p0_tbr: mk_oracle: fixed missing executes of sql for 10.1
 * 2014.10.28_1.2.2p0_tbr: mk_oracle: fixed forever running Jobs in oracle_jobs
 * 2014.10.28_1.2.2p0_tbr: mk_oracle: added new Instance MGMTDB for Oracle 12.1.0.2
-
-
 * 2014.10.01_1.2.2p0_tbr: mk_oracle: Bugfix for Environments with different Oracle Versions
-
 * 2014.09.30_1.2.2p0_tbr: mk_oracle: Oracle 9.2 is working with limited checks
-
 * 2014.09.28_1.2.2p0_tbr: mk_oracle: added missing mk_oracle mk_oracle.aix for new ASM check
-
 * 2014.09.27_1.2.2p0_tbr: oracle_instance added ORA +ASM Instance check
 * 2014.09.27_1.2.2p0_tbr: mk_oracle: Bugfix for ASM <= 10.2 
 * 2014.09.27_1.2.2p0_tbr: mk_oracle: Replaced sed -r with grep
 * 2014.09.27_1.2.2p0_tbr: mk_oracle: Code Cleanup
-
 * 2014.09.23_1.2.2p0_tbr: WATO rule for default increment
 * 2014.09.23_1.2.2p0_tbr: merged all changes from mk_oracle to mk_oracle.aix
-
 * 2014.09.17_1.2.2p0_tbr: mk_oracle: fixed broken ASYNC Sections
-
 * 2014.09.14_1.2.2p0_tbr: oracle_performance renamed Check from ORA ORACLE_SID Perf-Data to ORA ORACLE_SID Performance. A reinventory is needed!
 * 2014.09.14_1.2.2p0_tbr: oracle_performance fix for Physical Standby Databases
 * 2014.09.14_1.2.2p0_tbr: oracle_instance new WATO rule for archivelog, noarchivelog, force logging, no force logging, logins and uptime
@@ -117,15 +108,12 @@ Login as root
 * 2014.09.14_1.2.2p0_tbr: mk_oracle: mk_oracle_dbuser.conf moved to mk_oracle.cfg
 * 2014.09.14_1.2.2p0_tbr: mk_oracle: asm_diskgroup enabled by default
 * 2014.09.14_1.2.2p0_tbr: mk_oracle: automatic detection of Sections for all Database Versions. No need to configure mk_oracle.cfg for that anymore.
-
 * 2014.08.29_1.2.2p0_tbr: added missing changes for removing tnsnames.ora requirements
-
 * 2014.08.26_1.2.2p0_tbr: New Version numbering due to irritations between Check_MK and this plugin (timestamp of creation the mkp + compatible against Check_MK-Version + _tbr)
 * 2014.08.26_1.2.2p0_tbr: added owner in oracle_jobs service, added req_mir_free_space and offline disk in oracle_asm_diskgroup
 * 2014.08.26_1.2.2p0_tbr: sqlplus.sh is not required anymore, tnsnames.ora is replaced with more fields in mk_oracle_dbusers.conf
 * 2014.08.26_1.2.2p0_tbr: oracle_performance gets some performance data from Oracle
 * 2014.08.26_1.2.2p0_tbr: Testmode added: mk_oracle -t
-
 * 1.2.3: Bugfix wrong order of values in default parameters in oracle_recovery_status
 * 1.2.2: Bugfix sqlplus.sh, wallet is usable again
 * 1.2.0: New oracle_locks, oracle_longactivesessions Bugfix oracle_job, oracle_recovery_status. More feautures in sqlplus.sh
