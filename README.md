@@ -83,6 +83,7 @@ Login as root
 * man-pages are missing
 
 ## Version History
+* 2014.12.05_1.2.2p0_tbr: mk_oracle: Bugfix for missing RMAN Archivelog result
 * 2014.11.25_1.2.2p0_tbr: mk_oracle: Bugfix for oracle_jobs for old mk_oracle
 * 2014.11.24_1.2.2p0_tbr: mk_oracle: fixed wrong calculation for NORMAL and HIGH Redundancy Disk Groups
 * 2014.11.12_1.2.2p0_tbr: mk_oracle: Removed default rule in oracle_recovery_status, no alarms without a rule anymore
