@@ -1,0 +1,10 @@
+#!/bin/bash
+#
+# Plugin for getting details from lxc Container
+#
+# Thorsten.Bruhns@googlemail.com
+#
+echo "<<<lxc>>>"
+for container in $(lxc-ls) ; do
+    lxc-info -n $container -H -q
+done
