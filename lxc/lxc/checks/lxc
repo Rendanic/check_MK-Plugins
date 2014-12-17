@@ -10,7 +10,6 @@
 # | Copyright Mathias Kettner 2014             mk@mathias-kettner.de |
 # +------------------------------------------------------------------+
 #
-# This file is part of Check_MK.
 # The official homepage is at http://mathias-kettner.de/check_mk.
 #
 # check_mk is free software;  you can redistribute it and/or modify it
@@ -25,33 +24,73 @@
 # Boston, MA 02110-1301 USA.
 
 # <<<lxc>>>
-# pengt  15
-# hirni  22
+# Name:           omd
+# State:          RUNNING
+# PID:            529
+# IP:             192.168.100.128
+# CPU use:        1830256865353
+# BlkIO use:      277733376
+
 
 def parse_lxc(info):
-    parsed = {}
+    parsed = []
+    details = {}
+
     for line in info:
-        if len(line) > 2 and line[1] == "=":
-            parsed[line[0]] = int(line[2])
+
+        if line[0] == 'Name:':
+
+            # write an existing dict before clearing it
+            if 'Name' in details:
+                parsed.append(details.copy())
+
+            # clear an existing dictionary
+            details = {}
+
+        key = ' '.join(line[0:-1]).translate(None, ':')
+        value = line[-1]
+        details[key] = value
+
+    if 'Name' in details:
+        parsed.append(details.copy())
+
     return parsed
 
-def inventory_lxc(info):
-    return [ (line[1], None) for line in info if line[0] == 'Name:' ]
+def inventory_lxc(parsed):
+    return [ (line["Name"], None) for line in parsed if "Name" in line ]
 
-def check_lxc(item, params, info):
-    for line in info:
-        if line[0] == 'Name:' and line[1] == item:
+def check_lxc(item, params, parsed):
+    for line in parsed:
+        if "Name" in line and line["Name"] == item:
 
-            infotext = "%s" % (item)
-            return (0, infotext, None)
+            perfdata = []
 
+            if line["State"] == "RUNNING":
+
+                infotext = "%s is %s Memory used: %s CPU used: %s BlkIO: %s IP: %s PID: %s" % \
+                            (item, line["State"] \
+                            , get_bytes_human_readable(int(line["Memory use"])) \
+                            , get_age_human_readable(int(line["CPU use"])/1000000000) \
+                            , get_bytes_human_readable(int(line["BlkIO use"])) \
+                            , line["IP"] \
+                            , line["PID"]
+                            )
+
+                perfdata.append(("cpu", int(line["CPU use"]), '', '', 0))
+                perfdata.append(("memory", int(line["Memory use"]), '', '', 0))
+                perfdata.append(("BlkID", int(line["BlkIO use"]), '', '', 0))
+
+            else:
+                infotext = "%s is %s" % (item, line["State"])
+
+            return (0, infotext, perfdata)
 
 
 check_info["lxc"] = {
     'check_function':          check_lxc,
     'inventory_function':      inventory_lxc,
-    'service_description':     'lxc %s Container',
-    #"parse_function":          parse_lxc,
-    'has_perfdata':            False,
+    'service_description':     'lxc Container %s',
+    "parse_function":          parse_lxc,
+    'has_perfdata':            True,
     'group':                   'lxc',
 }
