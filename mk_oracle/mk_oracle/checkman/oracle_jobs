@@ -31,8 +31,8 @@ perfdata:
 [parameters]
 parameters (dict):
 
- {"disabled"}: Either {True} or {False} - Ignore the state of
- the job. True => a disabled job is OK
+ {"disabled"}: Either {True} (default) or {False} - Ignore the state of
+ the job. {True} => a disabled job is OK
 
  {"run_duration"}:  By default a tuple containing the warn and crit levels
  for the run_duration of the job. A value of 0 ignores the warn or crit state.

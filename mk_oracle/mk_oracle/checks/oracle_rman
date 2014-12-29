@@ -39,9 +39,10 @@ def inventory_oracle_rman(info):
 def check_oracle_rman(item, params, info):
     for sid, status, start, end, backuptype, backupage in info:
         if item == sid + "." + backuptype:
+
+            perfdata = []
             state = 2
-            infotext = "no succesful Backup found in last 14 days"
-            perfdata = None
+            infotext = "no COMPLETED backup found in last 14 days"
 
             if status in  ('COMPLETED', 'COMPLETED WITH WARNINGS'):
                 if not backupage:
@@ -55,8 +56,6 @@ def check_oracle_rman(item, params, info):
                 state = 0
                 if "levels" in params:
                     warn, crit = params.get("levels")
-                    warn = int(warn)
-                    crit = int(crit)
                     if backupage >= crit:
                         state = 2
                     elif backupage >= warn:
@@ -65,7 +64,7 @@ def check_oracle_rman(item, params, info):
                         get_age_human_readable(warn),
                         get_age_human_readable(crit))
 
-                    perfdata = [ ("age", backupage, warn , crit ) ]
+                    perfdata = [ ("age", backupage, warn, crit) ]
                 else:
                     perfdata = [ ("age", backupage, ) ]
 
@@ -74,7 +73,7 @@ def check_oracle_rman(item, params, info):
     # In case of missing information we assume that the login into
     # the database has failed and we simply skip this check. It won't
     # switch to UNKNOWN, but will get stale.
-    raise MKCounterWrapped(None, "Instance not running or Login into database failed")
+    raise MKCounterWrapped(None, "Login into database failed")
 
 check_info['oracle_rman'] = {
     "check_function"          : check_oracle_rman,

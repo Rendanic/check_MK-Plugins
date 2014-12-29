@@ -83,6 +83,13 @@ Login as root
 * man-pages are missing
 
 ## Version History
+* 2014.12.29_1.2.2p0_tbr: mk_oracle: moved sqlnet.ora to cfg_samples
+* 2014.12.29_1.2.2p0_tbr: mk_oracle: sqlplus connection with SERVER=DEDICATED
+* 2014.12.29_1.2.2p0_tbr: mk_oracle: code refactoring in oracle_rman
+* 2014.12.29_1.2.2p0_tbr: mk_oracle: removed default values in oracle_recovery_status, advanced backupcheck
+* 2014.12.29_1.2.2p0_tbr: mk_oracle: New rule for apply_lag_min in oracle_dataguard_stats, removed default rule
+* 2014.12.29_1.2.2p0_tbr: mk_oracle: New function for Primary Database not OPEN
+* 2014.12.29_1.2.2p0_tbr: mk_oracle: #1726 Move variable data of Linux/UNIX agents to /var/lib/check_mk_agent
 * 2014.12.05_1.2.2p0_tbr: mk_oracle: Bugfix for missing RMAN Archivelog result
 * 2014.11.25_1.2.2p0_tbr: mk_oracle: Bugfix for oracle_jobs for old mk_oracle
 * 2014.11.24_1.2.2p0_tbr: mk_oracle: fixed wrong calculation for NORMAL and HIGH Redundancy Disk Groups
