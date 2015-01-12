@@ -83,40 +83,46 @@ Login as root
 * man-pages are missing
 
 ## Version History
-* 2014.12.29_1.2.2p0_tbr: mk_oracle: moved sqlnet.ora to cfg_samples
-* 2014.12.29_1.2.2p0_tbr: mk_oracle: sqlplus connection with SERVER=DEDICATED
-* 2014.12.29_1.2.2p0_tbr: mk_oracle: code refactoring in oracle_rman
-* 2014.12.29_1.2.2p0_tbr: mk_oracle: removed default values in oracle_recovery_status, advanced backupcheck
-* 2014.12.29_1.2.2p0_tbr: mk_oracle: New rule for apply_lag_min in oracle_dataguard_stats, removed default rule
-* 2014.12.29_1.2.2p0_tbr: mk_oracle: New function for Primary Database not OPEN
-* 2014.12.29_1.2.2p0_tbr: mk_oracle: #1726 Move variable data of Linux/UNIX agents to /var/lib/check_mk_agent
-* 2014.12.05_1.2.2p0_tbr: mk_oracle: Bugfix for missing RMAN Archivelog result
-* 2014.11.25_1.2.2p0_tbr: mk_oracle: Bugfix for oracle_jobs for old mk_oracle
-* 2014.11.24_1.2.2p0_tbr: mk_oracle: fixed wrong calculation for NORMAL and HIGH Redundancy Disk Groups
-* 2014.11.12_1.2.2p0_tbr: mk_oracle: Removed default rule in oracle_recovery_status, no alarms without a rule anymore
-* 2014.11.04_1.2.2p0_tbr: mk_oracle: Bugfix oracle_rman detect failed jobs, age changed to seconds
-* 2014.10.28_1.2.2p0_tbr: mk_oracle: bugfix for ORACLE_SID with '_'
-* 2014.10.28_1.2.2p0_tbr: mk_oracle: fixed dataguard_stat availible from 10.2 onwards
-* 2014.10.28_1.2.2p0_tbr: mk_oracle: fixed missing executes of sql for 10.1
-* 2014.10.28_1.2.2p0_tbr: mk_oracle: fixed forever running Jobs in oracle_jobs
-* 2014.10.28_1.2.2p0_tbr: mk_oracle: added new Instance MGMTDB for Oracle 12.1.0.2
-* 2014.10.01_1.2.2p0_tbr: mk_oracle: Bugfix for Environments with different Oracle Versions
-* 2014.09.30_1.2.2p0_tbr: mk_oracle: Oracle 9.2 is working with limited checks
-* 2014.09.28_1.2.2p0_tbr: mk_oracle: added missing mk_oracle mk_oracle.aix for new ASM check
+* 2015.01.12_1.2.2p0_tbr: oracle_rman: Check for new format from agent
+* 2015.01.12_1.2.2p0_tbr: oracle_rman: new SQL for FULL and INCR Backups
+* 2015.01.12_1.2.2p0_tbr: oracle_jobs: new SQL for jobs without log information
+* 2015.01.12_1.2.2p0_tbr: oracle_jobs: added rules for missing job and missing log information
+* 2015.01.12_1.2.2p0_tbr: #1826 oracle_dataguard_stats: New rule for apply_lag_min, removed default rule
+* 2015.01.12_1.2.2p0_tbr: #1825 oracle_recovery_status: backupcheck for user managed backups
+* 2015.01.12_1.2.2p0_tbr: #1822 oracle_undostat: rule for non space error count
+* 2014.12.29_1.2.2p0_tbr: moved sqlnet.ora to cfg_samples
+* 2014.12.29_1.2.2p0_tbr: #1821 FIX mk_oracle: changed connection to dedicated server mode
+* 2014.12.29_1.2.2p0_tbr: #1824 FIX oracle_recovery_status: removed default values from Check
+* 2014.12.29_1.2.2p0_tbr: #1821 FIX mk_oracle: changed connection to dedicated server mode
+* 2014.12.29_1.2.2p0_tbr: #1391 FIX oracle_instance: New function for Primary Database not OPEN
+* 2014.12.29_1.2.2p0_tbr: #1726 Move variable data of Linux/UNIX agents to /var/lib/check_mk_agent
+* 2014.12.05_1.2.2p0_tbr: #1390 FIX mk_oracle: better detection of RMAN Archivelog Backups
+* 2014.11.25_1.2.2p0_tbr: #1511 FIX oracle_jobs: avoid broken checks, make compatible with old version
+* 2014.11.24_1.2.2p0_tbr: #1388 FIX oracle_asm_diskgroup: fixed wrong calculation of free space in NORMAL/HIGH redundancy Disk Groups
+* 2014.11.12_1.2.2p0_tbr: #1824 FIX oracle_recovery_status: removed default values from Check
+* 2014.11.04_1.2.2p0_tbr: #1389 FIX oracle_rman: detect failed jobs
+* 2014.10.28_1.2.2p0_tbr: bugfix for ORACLE_SID with '_'
+* 2014.10.28_1.2.2p0_tbr: fixed dataguard_stat availible from 10.2 onwards
+* 2014.10.28_1.2.2p0_tbr: fixed missing executes of sql for 10.1
+* 2014.10.28_1.2.2p0_tbr: fixed forever running Jobs in oracle_jobs
+* 2014.10.28_1.2.2p0_tbr: added new Instance MGMTDB for Oracle 12.1.0.2
+* 2014.10.01_1.2.2p0_tbr: Bugfix for Environments with different Oracle Versions
+* 2014.09.30_1.2.2p0_tbr: Oracle 9.2 is working with limited checks
+* 2014.09.28_1.2.2p0_tbr: added missing mk_oracle mk_oracle.aix for new ASM check
 * 2014.09.27_1.2.2p0_tbr: oracle_instance added ORA +ASM Instance check
-* 2014.09.27_1.2.2p0_tbr: mk_oracle: Bugfix for ASM <= 10.2 
-* 2014.09.27_1.2.2p0_tbr: mk_oracle: Replaced sed -r with grep
-* 2014.09.27_1.2.2p0_tbr: mk_oracle: Code Cleanup
+* 2014.09.27_1.2.2p0_tbr: Bugfix for ASM <= 10.2 
+* 2014.09.27_1.2.2p0_tbr: Replaced sed -r with grep
+* 2014.09.27_1.2.2p0_tbr: Code Cleanup
 * 2014.09.23_1.2.2p0_tbr: WATO rule for default increment
 * 2014.09.23_1.2.2p0_tbr: merged all changes from mk_oracle to mk_oracle.aix
-* 2014.09.17_1.2.2p0_tbr: mk_oracle: fixed broken ASYNC Sections
+* 2014.09.17_1.2.2p0_tbr: fixed broken ASYNC Sections
 * 2014.09.14_1.2.2p0_tbr: oracle_performance renamed Check from ORA ORACLE_SID Perf-Data to ORA ORACLE_SID Performance. A reinventory is needed!
 * 2014.09.14_1.2.2p0_tbr: oracle_performance fix for Physical Standby Databases
 * 2014.09.14_1.2.2p0_tbr: oracle_instance new WATO rule for archivelog, noarchivelog, force logging, no force logging, logins and uptime
 * 2014.09.14_1.2.2p0_tbr: oracle_recovery_status: Bugfix for OFFLINE datafiles
-* 2014.09.14_1.2.2p0_tbr: mk_oracle: mk_oracle_dbuser.conf moved to mk_oracle.cfg
-* 2014.09.14_1.2.2p0_tbr: mk_oracle: asm_diskgroup enabled by default
-* 2014.09.14_1.2.2p0_tbr: mk_oracle: automatic detection of Sections for all Database Versions. No need to configure mk_oracle.cfg for that anymore.
+* 2014.09.14_1.2.2p0_tbr: mk_oracle_dbuser.conf moved to mk_oracle.cfg
+* 2014.09.14_1.2.2p0_tbr: asm_diskgroup enabled by default
+* 2014.09.14_1.2.2p0_tbr: automatic detection of Sections for all Database Versions. No need to configure mk_oracle.cfg for that anymore.
 * 2014.08.29_1.2.2p0_tbr: added missing changes for removing tnsnames.ora requirements
 * 2014.08.26_1.2.2p0_tbr: New Version numbering due to irritations between Check_MK and this plugin (timestamp of creation the mkp + compatible against Check_MK-Version + _tbr)
 * 2014.08.26_1.2.2p0_tbr: added owner in oracle_jobs service, added req_mir_free_space and offline disk in oracle_asm_diskgroup

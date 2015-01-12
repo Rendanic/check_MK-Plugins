@@ -266,6 +266,12 @@ register_check_parameters(
                   title = _("Disabled"),
                   label = _("Disabled is allowed"),
                   help = "Ignore the enable/disable state of the job.")),
+            ( 'missingjob',
+                MonitoringState(
+                    default_value = 3,
+                    title = _("State in case of Job is missing from Agent: "),
+                )
+            ),
                    ]),
     TextAscii(
         title = _("Scheduler-Job Name"),
