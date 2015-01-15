@@ -66,7 +66,13 @@ register_check_parameters(
                           Age(title = _("critical if less then"), default_value = 300),
                      ]
                  )
-             )
+             ),(
+            'nospaceerrcnt_state',
+                MonitoringState(
+                    default_value = 2,
+                    title = _("State in case of non space error count is greater then 0: "),
+                ),
+            ),
          ]
     ),
     TextAscii(
@@ -261,18 +267,40 @@ register_check_parameters(
                           Age(title = _("warning if higher then"), default_value = 0),
                           Age(title = _("critical if higher then"), default_value = 0),
                      ])),
-            ( "disabled",
-                Checkbox(
-                  title = _("Disabled"),
-                  label = _("Disabled is allowed"),
-                  help = "Ignore the enable/disable state of the job.")),
+            ( "disabled", DropdownChoice(
+             title = _("Job State"),
+             totext = "",
+             choices = [
+                 ( True, _("Ignore the state of the Job")),
+                 ( False, _("Consider the state of the job")),],
+             help = _("The state of the job is ignored per default.")
+            )),
             ( 'missingjob',
                 MonitoringState(
                     default_value = 3,
                     title = _("State in case of Job is missing from Agent: "),
                 )
             ),
-                   ]),
+            ( 'missinglog',
+                MonitoringState(
+                    default_value = 1,
+                    title = _("State in case of Job has no log information.: "),
+                    help = _("It is possible that a job has no log informations. This also means "
+                             "that the job has no last running state as this is obtained from the log. "
+                             "The last run state is ignored when no log information is found!. "
+                            )
+                ),
+              ),
+            ( 'failedjob',
+                MonitoringState(
+                    default_value = 2,
+                    title = _("State in case of Job is not SUCESSFUL.: "),
+                    help = _("Stete when the last run of the job was not sucessful. This is ignored "
+                             "when a job has no log information "
+                            )
+                ),
+              ),
+        ]),
     TextAscii(
         title = _("Scheduler-Job Name"),
         help = _("Here you can set explicit Scheduler-Jobs  by defining them via SID, Job-Owner "
