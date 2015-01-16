@@ -150,6 +150,7 @@ This plugin is used to check an Oracle Grid-Infrastructure or Oracle Restart.
 * Check_MK Agent 1.2.2p2 or newer
 
 ## Version History
+* 2015.01.16.1.2.2p0_tbr: Plugin compatibility against CRS 10.2 and 11.1
 * 2014.11.06.1.2.2p0_tbr: fix for Pending Services in CRS or GI Environments
 * 2014.09.28_1.2.2p0_tbr: Support for Gird-Infrastructure 12.1 added
 * 2014.09.28_1.2.2p0_tbr: Support for Gird-Infrastructure 12.1 added
