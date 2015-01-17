@@ -3,53 +3,37 @@
 # extracts data from Check_MK Package to current directory
 
 
-tmpdir=/tmp
-pkgname=$PWD/$1
+pkgname=$1
 
-pwd=$PWD
 
 extract_package() {
-	oldpwd=$PWD
-	cd /tmp
-	tar -xzf $pkgname info
-	packagename=$(grep "'name'" /tmp/info | cut -d"'" -f4)
+	packagename=$(tar -xOzf $pkgname info | grep "'name'" | cut -d"'" -f4)
 	export packagename
-	
-	tmppkgdir=/tmp/$packagename
-	test -d $tmppkgdir || mkdir $tmppkgdir
-	cd $tmppkgdir
-	tar -xzf $pkgname 
-	cd $oldpwd
-}
-
-extract_subarchiv() {
-	archivetype=$1
-	tarfile=$tmppkgdir/${archivetype}.tar
-
-	if [ -f ${tarfilee} ]
-	then
-		cd $pwd/$packagename
-		test -d $archivetype || mkdir $archivetype
-		cd $archivetype
-		tar -xf $tmppkgdir/${archivetype}.tar
-	fi
-	
 }
 
 extract_data() {
-	tmppkgdir=/tmp/$packagename
 
-	cd $pwd
-	test -d $packagename || mkdir $packagename
-	cd $packagename
-	for archiv in $(cd /tmp/${packagename}/ ; ls *tar | cut -d"." -f1)
+	for archiv in $(tar -tf $pkgname *.tar )
 	do
-		extract_subarchiv ${archiv}
+		echo "extracting "$archiv
+
+		subdir=$(echo $archiv | cut -d"." -f1)
+		if [ ! -d $subdir ] ; then
+			mkdir $subdir
+		fi
+
+		tar -xOzf $pkgname $archiv | tar -C $subdir -xf -
+		#extract_subarchiv ${archiv}
 	done
 
 }
 
+if [ ! -f "$pkgname" ] ; then
+	echo "File "$pkgname" not found!"
+	exit 1
+fi
+
+echo "Working on "$pkgname
 extract_package
-echo "Working on "$packagename
 extract_data
 
