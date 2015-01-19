@@ -83,6 +83,8 @@ Login as root
 * man-pages are missing
 
 ## Version History
+* 2015.01.19_1.2.2p0_tbr: oracle_dataguard_stats: Bugfix for 'params_value' referenced before assignment
+* 2015.01.19_1.2.2p0_tbr: oracle_undostat: Code cleanup for UNKNOWN state marker
 * 2015.01.14_1.2.2p0_tbr: mk_oracle: Added missing rules for oracle_jobs and oracle_undostat
 * 2015.01.12_1.2.2p0_tbr: oracle_rman: Check for new format from agent
 * 2015.01.12_1.2.2p0_tbr: oracle_rman: new SQL for FULL and INCR Backups
