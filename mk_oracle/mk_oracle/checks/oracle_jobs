@@ -169,7 +169,7 @@ def check_oracle_jobs(item, params, info):
             elif missinglog == 2:
                 txt += '(!!)'
             elif missinglog == 3:
-                txt += '(!!!)'
+                txt += '(?)'
             output.append(txt)
 
             state = max(state, missinglog)

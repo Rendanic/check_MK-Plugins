@@ -36,6 +36,8 @@
 # Columns: SID STATUS START END BACKUPTYPE BACKUPAGE
 
 # Create DB_INCR_<Level> checks when parameter is True
+# Set this to False for old behavior. This is required for the service
+# discovery and can't be set as a inventory parameter.
 inventory_oracle_rman_incremental_details = False
 
 def inventory_oracle_rman(info):

@@ -83,6 +83,13 @@ Login as root
 * man-pages are missing
 
 ## Version History
+* 2015.03.20_1.2.2p0_tbr: oracle_tablespace: removed configuration variable from check oracle_tablespaces_check_default_increment
+* 2015.03.20_1.2.2p0_tbr: oracle_tablespace: copied code from #1920 (reserved space for root) - no new functions in check!
+* 2015.03.20_1.2.2p0_tbr: oracle_asm_diskgroup: copied code from #1920 (reserved space for root) - no new functions in check!
+* 2015.03.20_1.2.2p0_tbr: mk_oracle: Parameter HINT_RMAN added
+* 2015.03.20_1.2.2p0_tbr: mk_oracle: Parameter IGNORE_DB_NAME added
+* 2015.03.20_1.2.2p0_tbr: mk_oracle: added oracle session environment
+* 2015.03.20_1.2.2p0_tbr: mk_oracle: backport of werk 1564 from agent for run_cached
 * 2015.01.19_1.2.2p0_tbr: oracle_dataguard_stats: Bugfix for 'params_value' referenced before assignment
 * 2015.01.19_1.2.2p0_tbr: oracle_undostat: Code cleanup for UNKNOWN state marker
 * 2015.01.14_1.2.2p0_tbr: mk_oracle: Added missing rules for oracle_jobs and oracle_undostat
