@@ -83,6 +83,8 @@ Login as root
 * man-pages are missing
 
 ## Version History
+* 2015.03.27_1.2.2p0_tbr: mk_oracle: Remote Monitoring of Oracle Databases
+* 2015.03.27_1.2.2p0_tbr: mk_oracle: Bugfix for oracle session environment and ASM Instances
 * 2015.03.20_1.2.2p0_tbr: oracle_tablespace: removed configuration variable from check oracle_tablespaces_check_default_increment
 * 2015.03.20_1.2.2p0_tbr: oracle_tablespace: copied code from #1920 (reserved space for root) - no new functions in check!
 * 2015.03.20_1.2.2p0_tbr: oracle_asm_diskgroup: copied code from #1920 (reserved space for root) - no new functions in check!

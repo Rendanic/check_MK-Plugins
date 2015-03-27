@@ -867,7 +867,12 @@ function ora_session_environment()
     if [ "$AT_LEAST_ORACLE_102" = 'yes' -a ! "$DISABLE_ORA_SESSION_SETTINGS" ] ; then
         echo 'set echo off'
         echo 'alter session set "_optimizer_mjc_enabled"=false;'
-        echo 'alter session set cursor_sharing=exact;'
+
+        # cursor_sharing is not valid for ASM instances
+        if [ ! ${ORACLE_SID:0:1} = '+' ] ; then
+            echo 'alter session set cursor_sharing=exact;'
+        fi
+
         echo 'set echo on'
     fi
     echo 'whenever sqlerror exit 1'
