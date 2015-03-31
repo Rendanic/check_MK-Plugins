@@ -83,15 +83,17 @@ Login as root
 * man-pages are missing
 
 ## Version History
-* 2015.03.27_1.2.2p0_tbr: mk_oracle: Remote Monitoring of Oracle Databases
+* 2015.03.31_1.2.2p0_tbr: oracle_recovery_status: Bugfix for checkpoints in the future
+* 2015.03.31_1.2.2p0_tbr: added a missing bugifx for #1903
+* 2015.03.27_1.2.2p0_tbr: #1903 mk_oracle: Remote Monitoring of Oracle Databases
 * 2015.03.27_1.2.2p0_tbr: mk_oracle: Bugfix for oracle session environment and ASM Instances
 * 2015.03.20_1.2.2p0_tbr: oracle_tablespace: removed configuration variable from check oracle_tablespaces_check_default_increment
 * 2015.03.20_1.2.2p0_tbr: oracle_tablespace: copied code from #1920 (reserved space for root) - no new functions in check!
 * 2015.03.20_1.2.2p0_tbr: oracle_asm_diskgroup: copied code from #1920 (reserved space for root) - no new functions in check!
-* 2015.03.20_1.2.2p0_tbr: mk_oracle: Parameter HINT_RMAN added
-* 2015.03.20_1.2.2p0_tbr: mk_oracle: Parameter IGNORE_DB_NAME added
-* 2015.03.20_1.2.2p0_tbr: mk_oracle: added oracle session environment
-* 2015.03.20_1.2.2p0_tbr: mk_oracle: backport of werk 1564 from agent for run_cached
+* 2015.03.20_1.2.2p0_tbr: #1902 mk_oracle: Performance hint for RMAN checks
+* 2015.03.20_1.2.2p0_tbr: #1901 mk_oracle: IGNORE_DB_NAME for special environments
+* 2015.03.20_1.2.2p0_tbr: #1900 mk_oracle: added oracle session environment
+* 2015.03.20_1.2.2p0_tbr: #1899 FIX mk_oracle: backport of werk 1564 from agent
 * 2015.01.19_1.2.2p0_tbr: oracle_dataguard_stats: Bugfix for 'params_value' referenced before assignment
 * 2015.01.19_1.2.2p0_tbr: oracle_undostat: Code cleanup for UNKNOWN state marker
 * 2015.01.14_1.2.2p0_tbr: mk_oracle: Added missing rules for oracle_jobs and oracle_undostat

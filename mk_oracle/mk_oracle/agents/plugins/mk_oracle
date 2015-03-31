@@ -939,6 +939,7 @@ function sqlplus() {
 
         if [ "$DEBUGCONNECT" ] ; then
             echo "Logindetails: ${DBCONNECT}" >&2
+            echo "$OUTPUT"
         else
             # SID_UPPER is required for backword compatibilty to old sqlplus.sh.
             # THis will be removed in a future time
@@ -1141,6 +1142,10 @@ if [ "$REMOTE_HOSTLIST" ] ; then
 
         echo "<<<<>>>>"
     done
+
+    if [ ! -e "$MK_VARDIR/mk_oracle.found" ] ; then
+        touch "$MK_VARDIR/mk_oracle.found"
+    fi
 fi
 
 # Get list of all running databases

@@ -97,7 +97,7 @@ def check_oracle_rman(item, params, info):
 
         elif item == "%s.%s" % (sid,  backuptype):
             # we found the item in agent output
-            # This situation is also valid for old agent format with 
+            # This situation is also valid for old agent format with
             # <sid>.DB_INCR as there was no level availible
             item_found = True
             break
