@@ -83,7 +83,8 @@ Login as root
 * man-pages are missing
 
 ## Version History
-* 2015.03.31_1.2.2p0_tbr: oracle_recovery_status: Bugfix for checkpoints in the future
+* 2015.04.01_1.2.2p0_tbr: #1904 FIX mk_oracle: added processes check to ASM
+* 2015.03.31_1.2.2p0_tbr: #1905 FIX oracle_recovery_status: Bugfix for checkpoints in the future
 * 2015.03.31_1.2.2p0_tbr: added a missing bugifx for #1903
 * 2015.03.27_1.2.2p0_tbr: #1903 mk_oracle: Remote Monitoring of Oracle Databases
 * 2015.03.27_1.2.2p0_tbr: mk_oracle: Bugfix for oracle session environment and ASM Instances
