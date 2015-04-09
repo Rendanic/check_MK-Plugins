@@ -8,7 +8,7 @@ and Thorsten Bruhns. mk_oracle use the new run_cached in this plugin
 which makes the future development much easier then before.
 The original plugin needs an agent from 1.2.5i5 onwards. This version
 is a backport for Check_MK 1.2.2 or newer. It should run on older versions
-as well but it is only tested on 1.2.5i5. 
+as well but it is only tested on 1.2.5i6.
 I will stop the backporting for this plugin with the next production 
 version (1.2.6) of Check_MK.
 
@@ -17,6 +17,7 @@ version (1.2.6) of Check_MK.
 * AIX 5.3 RDBMS 11.2
 * ASM: 10.2, 11.1, 11.2, 12.1 
 * Check_MK Agent 1.2.2p2 or newer
+* Check_MK <= 1.2.5 (This version is not compatible against 1.2.6 or newer!)
 
 ## How to configure the plugin
 The configuration is very simple since 2014.09.14_1.2.2p0_tbr.
@@ -83,6 +84,7 @@ Login as root
 * man-pages are missing
 
 ## Version History
+* 2015.04.09_1.2.2p0_tbr: oracle_asm_diskgroup: Bugfix for df.include from 1.2.6. This plugin works only with Check_MK <= 1.2.5!
 * 2015.04.01_1.2.2p0_tbr: #1904 FIX mk_oracle: added processes check to ASM
 * 2015.03.31_1.2.2p0_tbr: #1905 FIX oracle_recovery_status: Bugfix for checkpoints in the future
 * 2015.03.31_1.2.2p0_tbr: added a missing bugifx for #1903
