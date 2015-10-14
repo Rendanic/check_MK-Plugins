@@ -1,0 +1,78 @@
+#!/usr/local/bin/python2.7
+#
+import sys, traceback, os
+import ts3
+
+def ts3_login(host, port, username, password):
+
+    server = ts3.TS3Server(host, port)
+    server.login(username, password)
+
+    # choose virtual server
+    try:
+        server.use(1)
+    except:
+        print "Connection Error to Teamspeak-Server"
+        print '-'*60
+        traceback.print_exc(file=sys.stdout)
+        print '-'*60
+        sys.exit(1)
+
+    return server
+
+def ts3_print_serverinfo(server, servername):
+    response = server.send_command('serverinfo')
+    print "<<<ts3_serverinfo>>>"
+    print "%s|%s|%s|%s|%s|%s|%s|%s|%s|%s|%s|%s|%s" % (
+               servername
+             , response.data[0]['virtualserver_name']
+             , response.data[0]['virtualserver_version']
+             , response.data[0]['virtualserver_clientsonline']
+             , response.data[0]['virtualserver_maxclients']
+             , response.data[0]['virtualserver_uptime']
+             , response.data[0]['virtualserver_status']
+             , response.data[0]['virtualserver_queryclientsonline']
+             , response.data[0]['virtualserver_created']
+             , response.data[0]['connection_bytes_sent_total']
+             , response.data[0]['connection_bytes_received_total']
+             , response.data[0]['connection_bytes_sent_speech']
+             , response.data[0]['connection_bytes_received_speech']
+    )
+
+def ts3_print_virtualserver(server, servername):
+    print "<<<ts3_virtualserver>>>"
+    response = server.send_command('serverlist')
+    for virtserver in  response.data:
+        print "%s|%s|%s|%s|%s|%s|%s|%s|%s|%s" % (
+               servername
+             , virtserver['virtualserver_id']
+             , virtserver['virtualserver_port']
+             , virtserver['virtualserver_status']
+             , virtserver['virtualserver_clientsonline']
+             , virtserver['virtualserver_queryclientsonline']
+             , virtserver['virtualserver_maxclients']
+             , virtserver['virtualserver_uptime']
+             , virtserver['virtualserver_name']
+             , virtserver['virtualserver_autostart']
+        )
+
+
+conffile = os.getenv("MK_CONFDIR", "/etc/check_mk") + "/teamspeak3.cfg"
+
+
+if os.path.exists(conffile):
+    execfile(conffile)
+
+    print "<<<ts3_serverinfo>>>"
+    print "<<<ts3_virtualserver>>>"
+
+    for tsserver in cfg:
+        server = ts3_login(tsserver['server'], tsserver['port'], tsserver['user'], tsserver['password'])
+        ts3_print_serverinfo(server, tsserver['servername'])
+        ts3_print_virtualserver(server, tsserver['servername'])
+
+else:
+    print "<<<ts3_serverinfo>>>"
+    print "configuration file %s not found" % (conffile)
+    sys.exit(1)
+
