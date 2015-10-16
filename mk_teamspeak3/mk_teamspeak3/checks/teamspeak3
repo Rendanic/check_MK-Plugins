@@ -47,7 +47,7 @@ def inventory_teamspeak3_vserver(info):
     return [ (line[2], {}) for line in info ]
 
 def inventory_teamspeak3_info(info):
-    return [ (line[1], {}) for line in info ]
+    return [ (line[0], {}) for line in info ]
 
 def check_teamspeak3_info(item, params, info):
     state = 3
@@ -56,7 +56,7 @@ def check_teamspeak3_info(item, params, info):
 
     for line in info:
 
-        if line[1] == item:
+        if line[0] == item:
             if len(line) == 11:
 
                 servername, \
@@ -120,7 +120,7 @@ check_info["ts3_virtualserver"] = {
     'check_function':          check_teamspeak3_vserver,
     'inventory_function':      inventory_teamspeak3_vserver,
     'service_description':     'Teamspeak3 Virtual Server %s',
-    'has_perfdata':            False,
+    'has_perfdata':            True,
     'group':                   'ts3_virtualserver',
 }
 
@@ -128,6 +128,6 @@ check_info["ts3_hostinfo"] = {
     'check_function':          check_teamspeak3_info,
     'inventory_function':      inventory_teamspeak3_info,
     'service_description':     'Teamspeak3 Server %s',
-    'has_perfdata':            False,
+    'has_perfdata':            True,
     'group':                   'ts3_hostinfo',
 }
