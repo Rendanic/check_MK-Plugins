@@ -1,0 +1,133 @@
+#!/usr/bin/python
+# -*- encoding: utf-8; py-indent-offset: 4 -*-
+# +------------------------------------------------------------------+
+# |             ____ _               _        __  __ _  __           |
+# |            / ___| |__   ___  ___| | __   |  \/  | |/ /           |
+# |           | |   | '_ \ / _ \/ __| |/ /   | |\/| | ' /            |
+# |           | |___| | | |  __/ (__|   <    | |  | | . \            |
+# |            \____|_| |_|\___|\___|_|\_\___|_|  |_|_|\_\           |
+# |                                                                  |
+# | Copyright Mathias Kettner 2015             mk@mathias-kettner.de |
+# +------------------------------------------------------------------+
+#
+# The official homepage is at http://mathias-kettner.de/check_mk.
+#
+# check_mk is free software;  you can redistribute it and/or modify it
+# under the  terms of the  GNU General Public License  as published by
+# the Free Software Foundation in version 2.  check_mk is  distributed
+# in the hope that it will be useful, but WITHOUT ANY WARRANTY;  with-
+# out even the implied warranty of  MERCHANTABILITY  or  FITNESS FOR A
+# PARTICULAR PURPOSE. See the  GNU General Public License for more de-
+# ails.  You should have  received  a copy of the  GNU  General Public
+# License along with GNU Make; see the file  COPYING.  If  not,  write
+# to the Free Software Foundation, Inc., 51 Franklin St,  Fifth Floor,
+# Boston, MA 02110-1301 USA.
+
+# Plugin is written by Thorsten Bruhns <thorsten.bruhns@googlemail.com>
+#
+# <<<ts3_serverinfo>>>
+# ts3|Dreamteam One|3.0.10.3 [Build: 1388593719]|1|50|803171|online|1|1293196894|212297046|66412124|205720177|59460185
+
+# Agentformat:
+# servername
+# virtualserver_name
+# virtualserver_version
+# virtualserver_clientsonline
+# virtualserver_maxclients
+# virtualserver_uptime
+# virtualserver_status
+# virtualserver_queryclientsonline
+# virtualserver_created
+# connection_bytes_sent_total
+# connection_bytes_received_total
+# connection_bytes_sent_speech
+# connection_bytes_received_speech
+
+def inventory_teamspeak3_vserver(info):
+    return [ (line[2], {}) for line in info ]
+
+def inventory_teamspeak3_info(info):
+    return [ (line[1], {}) for line in info ]
+
+def check_teamspeak3_info(item, params, info):
+    state = 3
+    infotext = ''
+    perfdata = []
+
+    for line in info:
+
+        if line[1] == item:
+            if len(line) == 11:
+
+                servername, \
+                instance_uptime, \
+                host_timestamp_utc, \
+                vs_running_total, \
+                vs_total_maxclients, \
+                vs_total_clients_online, \
+                vs_total_channels_online, \
+                file_bytes_sent_total, \
+                file_bytes_recv_total, \
+                bytes_sent_total, \
+                bytes_recv_total = line
+
+                state = 0
+                infotext = 'Clients (%s/%s), Data %s sent %s received, Uptime %s, Virtual Servers %s' % \
+                    (vs_total_clients_online, vs_total_maxclients, \
+                     get_bytes_human_readable(int(bytes_sent_total)), \
+                     get_bytes_human_readable(int(bytes_recv_total)), \
+                     get_age_human_readable(int(instance_uptime)), vs_running_total)
+
+                perfdata.append(('clients', vs_total_clients_online, int(vs_total_maxclients)))
+                perfdata.append(('sent', bytes_sent_total))
+                perfdata.append(('received', bytes_recv_total))
+                perfdata.append(('uptime', instance_uptime))
+    return (state, infotext, perfdata)
+
+def check_teamspeak3_vserver(item, params, info):
+    state = 3
+    infotext = ''
+    perfdata = []
+
+    for line in info:
+
+        if line[2] == item:
+            if len(line) == 10:
+                servername, \
+                vserver_id, \
+                vserver_port, \
+                vserver_status, \
+                vserver_client_online, \
+                vserver_queryonline, \
+                vserver_maxclients, \
+                vserver_uptime, \
+                vserver_name, \
+                vserver_auto = line
+
+                state = 0
+                infotext = 'Clients %s/%s, Uptime %s, Status %s, Port %s, Name: %s' % \
+                          (vserver_client_online, vserver_maxclients, \
+                           get_age_human_readable(int(vserver_uptime)), \
+                           vserver_status, vserver_port, \
+                           vserver_name)
+                perfdata.append(('clients', vserver_client_online, int(vserver_maxclients)))
+                perfdata.append(('uptime', vserver_uptime))
+
+    return (state, infotext, perfdata)
+
+
+check_info["ts3_virtualserver"] = {
+    'check_function':          check_teamspeak3_vserver,
+    'inventory_function':      inventory_teamspeak3_vserver,
+    'service_description':     'Teamspeak3 Virtual Server %s',
+    'has_perfdata':            False,
+    'group':                   'ts3_virtualserver',
+}
+
+check_info["ts3_hostinfo"] = {
+    'check_function':          check_teamspeak3_info,
+    'inventory_function':      inventory_teamspeak3_info,
+    'service_description':     'Teamspeak3 Server %s',
+    'has_perfdata':            False,
+    'group':                   'ts3_hostinfo',
+}
