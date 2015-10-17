@@ -23,6 +23,13 @@
 # to the Free Software Foundation, Inc., 51 Franklin St,  Fifth Floor,
 # Boston, MA 02110-1301 USA.
 
+# This plugin is NOT part of the official release of Check_MK!
+# There are no parameters or templates for pnp existing. This comes in
+# the future.
+#
+# written by Thorsten Bruhns (thorsten.bruhns@googlemail.com)
+
+#
 # <<<lxc>>>
 # Name:           omd
 # State:          RUNNING
@@ -49,6 +56,9 @@ def parse_lxc(info):
 
         key = ' '.join(line[0:-1]).translate(None, ':')
         value = line[-1]
+        # skip IPv6 adresses
+        if key == 'IP' and value.find(':') > 1:
+            continue
         details[key] = value
 
     if 'Name' in details:
@@ -64,11 +74,23 @@ def check_lxc(item, params, parsed):
         if "Name" in line and line["Name"] == item:
 
             perfdata = []
+            this_time = int(time.time())
 
-            if line["State"] == "RUNNING":
 
-                infotext = "%s is %s Memory used: %s CPU used: %s BlkIO: %s IP: %s PID: %s" % \
+            if line["State"] in ("RUNNING", "FROZEN"):
+
+                line.setdefault("BlkIO use", -1)
+                line.setdefault("CPU use", -1)
+
+                try:
+                    cpu_used_rate = get_rate("lxc.cpu_used" \
+                                       , this_time, float(line["CPU use"]), onwrap=RAISE)
+                except MKCounterWrapped:
+                    cpu_used_rate = 0
+
+                infotext = "%s is %s CPU used per Second: %s Memory used: %s CPU used: %s BlkIO: %s IP: %s PID: %s" % \
                             (item, line["State"] \
+                            , round(cpu_used_rate/1000000000000,2) \
                             , get_bytes_human_readable(int(line["Memory use"])) \
                             , get_age_human_readable(int(line["CPU use"])/1000000000) \
                             , get_bytes_human_readable(int(line["BlkIO use"])) \
@@ -78,7 +100,8 @@ def check_lxc(item, params, parsed):
 
                 perfdata.append(("cpu", int(line["CPU use"]), '', '', 0))
                 perfdata.append(("memory", int(line["Memory use"]), '', '', 0))
-                perfdata.append(("BlkID", int(line["BlkIO use"]), '', '', 0))
+                if int(line["BlkIO use"]) <> -1:
+                    perfdata.append(("blockio", int(line["BlkIO use"]), '', '', 0))
 
             else:
                 infotext = "%s is %s" % (item, line["State"])
