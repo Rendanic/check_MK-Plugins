@@ -6,5 +6,5 @@
 #
 echo "<<<lxc>>>"
 for container in $(lxc-ls) ; do
-    lxc-info -n $container -H -q
+    waitmax 5 lxc-info -n $container -H -q
 done
