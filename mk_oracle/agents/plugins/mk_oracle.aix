@@ -260,10 +260,7 @@ sql_recovery_status()
                      ||'|'|| dh.RECOVER
                      ||'|'|| dh.FUZZY
                      ||'|'|| dh.CHECKPOINT_CHANGE#
-                     ||'|'|| vb.STATUS
-                     ||'|'|| round((sysdate-vb.TIME)*24*60*60)
-              FROM  V\$datafile_header dh, v\$database d, v\$instance i, v\$backup vb
-              WHERE vb.file# = dh.file#
+              FROM  V\$datafile_header dh, v\$database d, v\$instance i
               ORDER BY dh.file#;
              "
     elif [ "$AT_LEAST_ORACLE_92" = 'yes' ] ; then

@@ -9,24 +9,26 @@ description:
  execution was successfull and the next execution is
  scheduled. It also records the execution time of the jobs.
 
- The new item format is required for jobs with same name at
- different users.
-
  This check needs the Check_MK {mk_oracle}-plugin installed in
  the agent. Please refer to the online documentation
  for how to install that plugin.
 
-item:
- There are 2 different formats:
- new format: <SID>.<JOB_OWNER>.<JOB_NAME>
- old format: <SID>.<JOB_NAME>
+ {"disabled"}: The state of a job is ignored when this parameter
+ is {True}. This is the default behavior.
 
- The old item format is for backword compatibility. A new
- inventory automatically creates services in new format!
+ {"run_duration"}: Create a WARN or CRIT when the run duration
+ exceeds the time in seconds.
+
+item:
+ {ORA} {<SID>.<JOB_OWNER>.<JOB_NAME>} {Job} for each entry from the
+ plugin.
 
 perfdata:
  One value: the duration of the last job execution in seconds.
 
+
+inventory:
+ One separate check for each enabled job will be created.
 
 [parameters]
 parameters (dict):
@@ -35,8 +37,9 @@ parameters (dict):
  the job. {True} => a disabled job is OK
 
  {"run_duration"}:  By default a tuple containing the warn and crit levels
- for the run_duration of the job. A value of 0 ignores the warn or crit state.
+ in seconds for the run_duration of the job.
 
-inventory:
- One separate check for each enabled job will be created.
- An inventory always creates jobs with the new agent item format
+[configuration]
+disabled (boolean): Default is {True}
+run_duration (int): Maximum run dureation for a job in seconds. Default is
+ None. Example for WARN=10 and CRIT=30 Seconds. {(10, 30)}
