@@ -1,0 +1,27 @@
+#!/bin/bash
+#
+. /etc/check_mk/etcd.cfg
+
+ETCDCTL=$(which etcdctl)
+etcdout=$($ETCDCTL --endpoints="${endpoints}" cluster-health)
+retcode="$?"
+
+if [ "$retcode" -eq 0 ] ; then
+
+   state=0
+   statetxt="OK"
+
+elif [[ "$etcdout" == *"cluster is degraded"* ]] ; then
+
+   state=1
+   statetxt="WARN"
+
+else
+
+   state=2
+   statetxt="CRIT"
+
+fi
+
+echo "${state} ETCD-Cluster - ${statetxt}: $etcdout" |tr '\n' '\\r'
+echo ""
